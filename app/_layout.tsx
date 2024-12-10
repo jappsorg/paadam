@@ -12,7 +12,7 @@ export default function AppLayout() {
         <StatusBar style="auto" />
         <Tabs
           screenOptions={{
-            tabBarActiveTintColor: theme.colors.primary,
+            tabBarActiveTintColor: theme.colors.text,
             tabBarInactiveTintColor: theme.colors.placeholder,
             tabBarLabelStyle: {
               fontSize: 12,
@@ -29,11 +29,7 @@ export default function AppLayout() {
               title: "Home",
               headerShown: false,
               tabBarIcon: ({ color, size }) => (
-                <MaterialCommunityIcons
-                  name="file-document-multiple"
-                  size={size}
-                  color={color}
-                />
+                <MaterialCommunityIcons name="home" size={size} color={color} />
               ),
             }}
           />
