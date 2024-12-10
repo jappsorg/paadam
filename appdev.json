@@ -1,0 +1,5 @@
+{
+  "name": "paadam",
+  "initialPrompt": "a simple app to generate worksheet for kids k-5. option to generate math worksheet, math puzzles, math word problems, logic puzzles, diy science experiments. Generate a service using anthropic client SDK to generate worksheets and convert them to PDF",
+  "type": "mobile"
+}

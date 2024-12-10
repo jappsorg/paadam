@@ -1,50 +1,71 @@
-# Welcome to your Expo app 👋
+# Paadam
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+AI-powered worksheet generator for K-5 students. Generate personalized educational worksheets using advanced language models.
+This app was generated using (App Developer Copilot)[https://github.com/sindujaramaraj/app-developer-copilot]
 
-## Get started
+## Features
 
-1. Install dependencies
+- 📚 Multiple worksheet types:
+  - Math problems
+  - Word problems
+  - Logic puzzles
+  - Brain teasers
+- 📊 Grade levels K-5
+- 🎯 Adjustable difficulty levels
+- 📝 Customizable subjects and topics
+- ✨ AI-powered content generation
+- 📱 Mobile-first design
 
-   ```bash
-   npm install
-   ```
+## Tech Stack
 
-2. Start the app
+- React Native + Expo
+- TypeScript
+- Anthropic Claude API
+- React Native Paper
+- Expo Router
 
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Installation
 
 ```bash
-npm run reset-project
+# Clone the repository
+git clone https://github.com/sindujaramaraj/paadam.git
+
+# Install dependencies
+cd paadam
+npm install
+
+# Start the development server
+npm run start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Usage
 
-## Learn more
+- Select worksheet type (Math, Puzzle, Word Problem, Logic)
+- Choose grade level (K-5)
+- Configure options (difficulty, subject, etc.)
+- Generate worksheet
+- View, share or print the worksheet
 
-To learn more about developing your project with Expo, look at the following resources:
+## Screenshots
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+[Coming soon]
 
-## Join the community
+## Development
 
-Join our community of developers creating universal apps.
+# Run tests
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```
+npm test
+```
+
+# Run linter
+
+```
+npm run lint
+```
+
+# Build for production
+
+```
+eas build
+```
