@@ -1,7 +1,7 @@
 # Paadam
 
 AI-powered worksheet generator for K-5 students. Generate personalized educational worksheets using advanced language models.
-This app was generated using (App Developer Copilot)[https://github.com/sindujaramaraj/app-developer-copilot]
+This app was generated using [App Developer Copilot](https://github.com/sindujaramaraj/app-developer-copilot)
 
 ## Features
 
@@ -52,19 +52,19 @@ npm run start
 
 ## Development
 
-# Run tests
+### Run tests
 
 ```
 npm test
 ```
 
-# Run linter
+### Run linter
 
 ```
 npm run lint
 ```
 
-# Build for production
+### Build for production
 
 ```
 eas build

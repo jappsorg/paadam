@@ -8,6 +8,7 @@ import {
   Switch,
   useTheme,
 } from "react-native-paper";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import WorksheetService from "../../services/WorksheetService";
 import { WorksheetPreview } from "../../components/WorksheetPreview";
@@ -22,7 +23,7 @@ import {
   DEFAULT_QUESTIONS_COUNT,
   WORKSHEET_TYPE_LABELS,
 } from "../../types/worksheet";
-import { StorageService } from "@/services/StorageService";
+import { StorageService } from "../../services/StorageService";
 
 export default function WorksheetGeneratorScreen() {
   const { type } = useLocalSearchParams<{ type: WorksheetType }>();
@@ -112,125 +113,129 @@ export default function WorksheetGeneratorScreen() {
   }, [type, updateConfig]);
 
   return (
-    <ScrollView style={styles.container}>
-      <Card style={styles.card}>
-        <Card.Title
-          title={WORKSHEET_TYPE_LABELS[type]}
-          titleVariant="headlineMedium"
-        />
-        <Card.Content>
-          <View style={styles.configItem}>
-            <Text variant="titleMedium">Grade Level</Text>
-            <View style={styles.buttonGroup} key={config.grade}>
-              {WORKSHEET_GRADE_OPTIONS.map((grade) => (
-                <Button
-                  key={grade.id}
-                  mode={config.grade === grade.id ? "outlined" : "text"}
-                  onPress={() => updateConfig({ grade: grade.id })}
-                  style={[
-                    styles.buttonInGroup,
-                    config.grade === grade.id
-                      ? styles.buttonInGroupSelected
-                      : {},
-                  ]}
-                >
-                  <Text>{grade.label}</Text>
-                </Button>
-              ))}
-            </View>
-          </View>
-
-          {(type === "math" ||
-            type === "word-problem" ||
-            type === "puzzle") && (
+    <SafeAreaView style={{ flex: 1 }}>
+      <ScrollView style={styles.container}>
+        <Card style={styles.card}>
+          <Card.Title
+            title={WORKSHEET_TYPE_LABELS[type]}
+            titleVariant="headlineMedium"
+          />
+          <Card.Content>
             <View style={styles.configItem}>
-              <Text variant="titleMedium">Subject</Text>
-              <View style={styles.buttonGroup} key={config.subject}>
-                {MATH_SUBJECT_OPTIONS.map((subject) => (
+              <Text variant="titleMedium">Grade Level</Text>
+              <View style={styles.buttonGroup} key={config.grade}>
+                {WORKSHEET_GRADE_OPTIONS.map((grade) => (
                   <Button
-                    key={subject.id}
-                    mode={config.subject === subject.id ? "outlined" : "text"}
-                    onPress={() => updateConfig({ subject: subject.id })}
+                    key={grade.id}
+                    mode={config.grade === grade.id ? "outlined" : "text"}
+                    onPress={() => updateConfig({ grade: grade.id })}
                     style={[
                       styles.buttonInGroup,
-                      config.subject === subject.id
+                      config.grade === grade.id
                         ? styles.buttonInGroupSelected
                         : {},
                     ]}
                   >
-                    <Text>{subject.label}</Text>
+                    <Text>{grade.label}</Text>
                   </Button>
                 ))}
               </View>
             </View>
-          )}
 
-          <View style={styles.configItem}>
-            <Text variant="titleMedium">Difficulty</Text>
-            <SegmentedButtons
-              value={config.difficulty}
-              onValueChange={(difficulty) =>
-                updateConfig({ difficulty: difficulty as WorksheetDifficulty })
-              }
-              buttons={WORKSHEET_DIFFICULTIES.map((level) => ({
-                value: level.id,
-                label: level.label,
-              }))}
-            />
-          </View>
+            {(type === "math" ||
+              type === "word-problem" ||
+              type === "puzzle") && (
+              <View style={styles.configItem}>
+                <Text variant="titleMedium">Subject</Text>
+                <View style={styles.buttonGroup} key={config.subject}>
+                  {MATH_SUBJECT_OPTIONS.map((subject) => (
+                    <Button
+                      key={subject.id}
+                      mode={config.subject === subject.id ? "outlined" : "text"}
+                      onPress={() => updateConfig({ subject: subject.id })}
+                      style={[
+                        styles.buttonInGroup,
+                        config.subject === subject.id
+                          ? styles.buttonInGroupSelected
+                          : {},
+                      ]}
+                    >
+                      <Text>{subject.label}</Text>
+                    </Button>
+                  ))}
+                </View>
+              </View>
+            )}
 
-          <View style={styles.configItem}>
-            <Text variant="titleMedium">Number of Questions</Text>
-            <SegmentedButtons
-              value={config.questionsCount.toString()}
-              onValueChange={(value) =>
-                updateConfig({ questionsCount: parseInt(value) })
-              }
-              buttons={["5", "10", "15"].map((count) => ({
-                value: count,
-                label: count.toString(),
-              }))}
-            />
-          </View>
+            <View style={styles.configItem}>
+              <Text variant="titleMedium">Difficulty</Text>
+              <SegmentedButtons
+                value={config.difficulty}
+                onValueChange={(difficulty) =>
+                  updateConfig({
+                    difficulty: difficulty as WorksheetDifficulty,
+                  })
+                }
+                buttons={WORKSHEET_DIFFICULTIES.map((level) => ({
+                  value: level.id,
+                  label: level.label,
+                }))}
+              />
+            </View>
 
-          <View style={styles.configItem}>
-            <Text variant="titleMedium">Include Answers</Text>
-            <Switch
-              value={config.includeAnswers}
-              onValueChange={(includeAnswers) =>
-                updateConfig({ includeAnswers })
-              }
-              style={styles.input}
-              color={theme.colors.tertiary}
-            />
-          </View>
+            <View style={styles.configItem}>
+              <Text variant="titleMedium">Number of Questions</Text>
+              <SegmentedButtons
+                value={config.questionsCount.toString()}
+                onValueChange={(value) =>
+                  updateConfig({ questionsCount: parseInt(value) })
+                }
+                buttons={["5", "10", "15"].map((count) => ({
+                  value: count,
+                  label: count.toString(),
+                }))}
+              />
+            </View>
 
-          {error && <Text style={styles.error}>{error}</Text>}
+            <View style={styles.configItem}>
+              <Text variant="titleMedium">Include Answers</Text>
+              <Switch
+                value={config.includeAnswers}
+                onValueChange={(includeAnswers) =>
+                  updateConfig({ includeAnswers })
+                }
+                style={styles.input}
+                color={theme.colors.tertiary}
+              />
+            </View>
 
-          <Button
-            mode="contained"
-            onPress={handleGenerate}
-            loading={loading}
-            disabled={loading}
-            style={styles.generateButton}
-          >
-            Generate Worksheet
-          </Button>
-        </Card.Content>
-      </Card>
+            {error && <Text style={styles.error}>{error}</Text>}
 
-      {worksheet && (
-        <WorksheetPreview
-          title={worksheet.title}
-          content={formatWorksheetContent(worksheet, config.includeAnswers)}
-          htmlContent={formatWorksheetContentAsHTML(
-            worksheet,
-            config.includeAnswers
-          )}
-          onClose={() => setWorksheet(null)}
-        />
-      )}
-    </ScrollView>
+            <Button
+              mode="contained"
+              onPress={handleGenerate}
+              loading={loading}
+              disabled={loading}
+              style={styles.generateButton}
+            >
+              Generate Worksheet
+            </Button>
+          </Card.Content>
+        </Card>
+
+        {worksheet && (
+          <WorksheetPreview
+            title={worksheet.title}
+            content={formatWorksheetContent(worksheet, config.includeAnswers)}
+            htmlContent={formatWorksheetContentAsHTML(
+              worksheet,
+              config.includeAnswers
+            )}
+            onClose={() => setWorksheet(null)}
+          />
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
