@@ -46,6 +46,7 @@ export interface Worksheet {
   createdAt: string;
   config: WorksheetConfig;
   title: string;
+  concept?: string;
   questions: WorksheetQuestion[];
   pdfUrl?: string;
 }

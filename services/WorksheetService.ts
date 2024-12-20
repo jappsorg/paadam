@@ -1,45 +1,35 @@
-import { Anthropic } from "@anthropic-ai/sdk";
+import { generateObject, CoreMessage } from "ai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { z } from "zod";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import {
   WorksheetConfig,
   WorksheetQuestion,
   Worksheet,
 } from "../types/worksheet";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import Joi from "joi";
+import { ANTHROPIC_MODELS } from "@/constants";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY || "",
-  dangerouslyAllowBrowser: true,
+const anthropicProvider = createAnthropic({
+  apiKey: process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY,
 });
 
-enum LLMOoutputType {
-  JSON = "json",
-  HTML = "html",
-}
-
-interface WorksheetQuestionFormat {
-  question: string;
-  answer?: string;
-  explanation?: string;
-}
-
-interface WorksheetResponseFormat {
-  concept: string;
-  questions: WorksheetQuestionFormat[];
-}
-
-const WorksheetResponseFormatSchema = Joi.object<WorksheetResponseFormat>({
-  concept: Joi.string().required().description("Concept for the worksheet"),
-  questions: Joi.array()
-    .items(
-      Joi.object({
-        question: Joi.string().required().description("Question"),
-        answer: Joi.string().optional().description("Answer"),
-        explanation: Joi.string().optional().description("Explanation"),
-      })
-    )
-    .required(),
+const WorksheetQuestionFormatSchema = z.object({
+  question: z.string().describe("Question"),
+  answer: z.string().describe("Answer"),
+  explanation: z.string().optional().describe("Explanation"),
 });
+
+type TWorksheetQuestionFormat = z.infer<typeof WorksheetQuestionFormatSchema>;
+
+const WorksheetResponseFormatSchema = z.object({
+  concept: z.string().describe("Concept for the worksheet"),
+  questions: z
+    .array(WorksheetQuestionFormatSchema)
+    .describe("List of questions and answers"),
+});
+
+type TWorksheetResponseFormat = z.infer<typeof WorksheetResponseFormatSchema>;
 
 export class WorksheetService {
   private static instance: WorksheetService;
@@ -53,32 +43,29 @@ export class WorksheetService {
     return WorksheetService.instance;
   }
 
-  private getPromptForWorksheetType(config: WorksheetConfig): string {
-    const prompts = [];
-    prompts.push(`You are a expert at generating worksheet for kids K-5`);
-    prompts.push(
-      `Generate ${config.questionsCount || 10} ${config.difficulty} level ${
-        config.type
-      } questions for grade ${config.grade}`
-    );
+  private getPromptsForWorksheetType(config: WorksheetConfig): CoreMessage[] {
+    const prompts: CoreMessage[] = [];
+    prompts.push({
+      role: "system",
+      content: `You are a expert at generating worksheet for kids K-5`,
+    });
+    prompts.push({
+      role: "user",
+      content: `Generate ${config.questionsCount || 10} ${
+        config.difficulty
+      } level ${config.type} questions for grade ${config.grade}`,
+    });
     if (config.subject) {
-      prompts.push(`Focus on subject: ${config.subject}`);
+      prompts.push({
+        role: "user",
+        content: `Focus on subject: ${config.subject}`,
+      });
     }
-    prompts.push(this.getPromptByType(config.type));
-    prompts.push(`Output must be a JSON code without any additional text. Make sure to escape strings. Sample output:
-    ------------------------------------------------
-    {
-      concept: "Addition",
-      questions: [
-      {
-        "question": "What is 2 + 2?",
-        "answer": "4",
-        "explanation": "2 + 2 = 4"
-        },
-      ]
-    }
-    ------------------------------------------------`);
-    return prompts.join(".\n");
+    prompts.push({
+      role: "user",
+      content: this.getPromptByType(config.type),
+    });
+    return prompts;
   }
 
   private getPromptByType(type: WorksheetConfig["type"]): string {
@@ -96,18 +83,13 @@ export class WorksheetService {
     }
   }
 
-  private parseResponse(response: string): WorksheetQuestion[] {
-    const jsonResponseArray = JSON.parse(response);
-    const { error, value: worksheetResponseObj } =
-      WorksheetResponseFormatSchema.validate(jsonResponseArray);
-    if (error) {
-      throw new Error("Invalid response format");
-    }
-
+  private formatQuestions(
+    questionResponseItems: TWorksheetQuestionFormat[]
+  ): WorksheetQuestion[] {
     const questions: WorksheetQuestion[] = [];
-    for (const item of worksheetResponseObj.questions) {
+    for (const item of questionResponseItems) {
       questions.push({
-        id: Math.random().toString(36).substr(2, 9),
+        id: Math.random().toString(36).substring(2, 9),
         question: item.question,
         answer: item.answer,
         explanation: item.explanation,
@@ -119,18 +101,21 @@ export class WorksheetService {
 
   async generateWorksheet(config: WorksheetConfig): Promise<Worksheet> {
     try {
-      const prompt = this.getPromptForWorksheetType(config);
+      const prompts = this.getPromptsForWorksheetType(config);
 
-      const completion = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 1024,
-        messages: [{ role: "user", content: prompt }],
+      const { object } = await generateObject<TWorksheetResponseFormat>({
+        model: anthropicProvider(ANTHROPIC_MODELS.CLAUDE_HAIKU),
+        schema: WorksheetResponseFormatSchema,
+        messages: prompts,
       });
 
-      const workSheetContent =
-        completion.content[0].type === "text" ? completion.content[0].text : "";
+      // Will throw error when response is invalid
+      // Use safeParse if you want to handle errors and retry
+      const worksheetResponseObject =
+        WorksheetResponseFormatSchema.parse(object);
 
-      const questions = this.parseResponse(workSheetContent);
+      const concept = worksheetResponseObject.concept;
+      const questions = this.formatQuestions(worksheetResponseObject.questions);
 
       const worksheet: Worksheet = {
         id: Math.random().toString(36).substr(2, 9),
@@ -140,6 +125,7 @@ export class WorksheetService {
         title: `${
           config.type.charAt(0).toUpperCase() + config.type.slice(1)
         } Worksheet - Grade ${config.grade}`,
+        concept,
         questions,
       };
 
