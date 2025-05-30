@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "165060975319",
+    "project_id": "paadam-e5807",
+    "storage_bucket": "paadam-e5807.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:165060975319:android:e5a494b3321f2ab7bbee92",
+        "android_client_info": {
+          "package_name": "com.japps.paadam"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCKBVMStDUg8C7-7znMRL3CndYJpV_cIUY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

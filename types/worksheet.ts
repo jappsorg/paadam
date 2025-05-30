@@ -49,6 +49,29 @@ export interface Worksheet {
   concept?: string;
   questions: WorksheetQuestion[];
   pdfUrl?: string;
+  userId: string | null; // UID of the user who generated/saved this, null for generic templates not tied to a user instance
+  isTemplate?: boolean; // If true, this is a generic template. If false/undefined, it's a generated instance.
+}
+
+export interface StudentWorksheetAttempt {
+  id: string; // Unique ID for this attempt
+  userId: string; // Firebase User UID
+  worksheetId: string; // ID of the base Worksheet document this attempt is for
+  worksheetTitle: string;
+  worksheetType: WorksheetType;
+  originalConfig: WorksheetConfig; // Configuration used for this attempt
+  questions: WorksheetQuestion[]; // The actual questions for this attempt (copied from the Worksheet)
+  studentAnswers: Array<{
+    questionId: string; // Corresponds to WorksheetQuestion.id
+    answer: string | string[]; // Student's answer
+    isCorrect?: boolean; // Optional: to store if the answer was marked correct
+  }>;
+  score: number | null; // e.g., number of correct answers, or percentage
+  maxScore: number | null; // Maximum possible score for this attempt
+  status: 'not-started' | 'in-progress' | 'completed';
+  startedAt?: string; // ISO date string, optional
+  completedAt?: string | null; // ISO date string, optional
+  lastAttemptedAt: string; // ISO date string
 }
 
 export interface WorksheetHistory {
