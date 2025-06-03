@@ -24,9 +24,11 @@ import {
   WORKSHEET_TYPE_LABELS,
 } from "../../types/worksheet";
 import { StorageService } from "../../services/StorageService";
+import { useAuth } from "../../context/AuthContext"; // Import useAuth
 
 export default function WorksheetGeneratorScreen() {
   const { type } = useLocalSearchParams<{ type: WorksheetType }>();
+  const { currentUser } = useAuth(); // Get currentUser from AuthContext
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,14 +53,48 @@ export default function WorksheetGeneratorScreen() {
         config
       );
       setWorksheet(generatedWorksheet);
-      StorageService.addWorksheetToHistory(generatedWorksheet);
+
+      if (currentUser && generatedWorksheet) {
+        try {
+          // Step 1: Create the WorksheetTemplate from the generated worksheet
+          const templateId = await StorageService.createWorksheetTemplate({
+            title: generatedWorksheet.title,
+            config: config, // The configuration used to generate this
+            questions: generatedWorksheet.questions,
+            createdBy: currentUser.uid, // Associate template with the user who generated it
+            // version: 1 // Optional: manage versions if templates can be edited
+          });
+
+          // Step 2: Start a new attempt for this user with the created template
+          await StorageService.startWorksheetAttempt(
+            currentUser.uid,
+            templateId,
+            generatedWorksheet.title,
+            generatedWorksheet.questions
+          );
+          console.log(
+            `Worksheet template created (ID: ${templateId}) and attempt started for user.`
+          );
+          // Optionally, provide feedback that worksheet attempt was saved.
+        } catch (saveError) {
+          console.error(
+            "Failed to create template or start worksheet attempt:",
+            saveError
+          );
+          // setError("Worksheet generated, but failed to save to your account for an attempt.");
+        }
+      } else if (generatedWorksheet) {
+        // For non-logged-in users, interactive attempt saving is not directly supported here.
+        // Or, prompt them to log in to save.
+        console.log("User not logged in. Worksheet not saved to an account.");
+      }
     } catch (err) {
       setError("Failed to generate worksheet. Please try again.");
       console.error("Worksheet generation error:", err);
     } finally {
       setLoading(false);
     }
-  }, [config]);
+  }, [config, currentUser]);
 
   const formatWorksheetContent = (
     worksheet: Worksheet,

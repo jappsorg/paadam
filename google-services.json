@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "165060975319",
+    "project_id": "paadam-e5807",
+    "storage_bucket": "paadam-e5807.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:165060975319:android:e5a494b3321f2ab7bbee92",
+        "android_client_info": {
+          "package_name": "com.japps.paadam"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "165060975319-otdljim06tco1b9vkf353c25pdibtchu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCKBVMStDUg8C7-7znMRL3CndYJpV_cIUY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "165060975319-otdljim06tco1b9vkf353c25pdibtchu.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "165060975319-bu9pa23t4eiunvlis0dgseiccp11513g.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.japps.paadam"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
