@@ -1,24 +1,55 @@
+/**
+ * Authentication Context
+ * 
+ * Provides authentication state and methods throughout the app
+ * Integrates with expo-auth-session for Google OAuth
+ */
+
 import React, {
   createContext,
   useContext,
   useEffect,
   useState,
   ReactNode,
-} from "react";
-import { FirebaseAuthTypes } from "@react-native-firebase/auth";
-import AuthService from "../services/AuthService";
-import * as WebBrowser from "expo-web-browser";
-import { useIdTokenAuthRequest } from "expo-auth-session/providers/google";
+} from 'react';
+import { User } from 'firebase/auth';
+import { authService, UserProfile } from '../services/AuthService';
+import { studentProfileService } from '../services/StudentProfileService';
+import { StudentProfile } from '../types/adaptive-learning';
+import * as WebBrowser from 'expo-web-browser';
+import {
+  useIdTokenAuthRequest,
+  makeRedirectUri,
+} from 'expo-auth-session/providers/google';
 
-// Ensure that we can complete the auth session on redirect for standalone apps
+// Ensure that we can complete the auth session on redirect
 WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextType {
-  currentUser: FirebaseAuthTypes.User | null;
+  // User state
+  currentUser: User | null;
+  userProfile: UserProfile | null;
   isLoading: boolean;
-  signInWithGoogle: () => Promise<void>;
+
+  // Student profiles
+  studentProfiles: StudentProfile[];
+  selectedStudent: StudentProfile | null;
+  setSelectedStudent: (student: StudentProfile | null) => void;
+  refreshStudentProfiles: () => Promise<void>;
+
+  // Email/Password methods
+  signUpWithEmail: (email: string, password: string, displayName: string) => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  resendEmailVerification: () => Promise<void>;
+
+  // Google OAuth
+  signInWithGoogle: () => Promise<void>;
   isGoogleSignInLoading: boolean;
+
+  // Profile management
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,110 +57,227 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [currentUser, setCurrentUser] = useState<FirebaseAuthTypes.User | null>(
-    null
-  );
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGoogleSignInLoading, setIsGoogleSignInLoading] = useState(false);
+  const [studentProfiles, setStudentProfiles] = useState<StudentProfile[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
 
+  // Google OAuth configuration
   const [request, response, promptAsync] = useIdTokenAuthRequest({
-    clientId: "YOUR_EXPO_GO_OR_WEB_CLIENT_ID.apps.googleusercontent.com",
-    iosClientId: "YOUR_IOS_CLIENT_ID.apps.googleusercontent.com",
-    androidClientId: "YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com",
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
   });
 
+  const refreshStudentProfiles = async (userId?: string) => {
+    const uid = userId || currentUser?.uid;
+    if (!uid) return;
+    try {
+      const profiles = await studentProfileService.getUserStudents(uid);
+      setStudentProfiles(profiles);
+      if (profiles.length > 0 && !selectedStudent) {
+        setSelectedStudent(profiles[0]);
+      }
+    } catch (error) {
+      console.error('[AuthContext] Failed to load student profiles:', error);
+    }
+  };
+
+  // Listen to auth state changes
   useEffect(() => {
-    const unsubscribe = AuthService.onAuthStateChangedListener((user) => {
+    const unsubscribe = authService.onAuthStateChanged(async (user) => {
       setCurrentUser(user);
+
+      if (user) {
+        // Load user profile
+        try {
+          const profile = await authService.getUserProfile(user.uid);
+          setUserProfile(profile);
+        } catch (error) {
+          console.error('[AuthContext] Failed to load profile:', error);
+        }
+        // Load student profiles
+        await refreshStudentProfiles(user.uid);
+      } else {
+        setUserProfile(null);
+        setStudentProfiles([]);
+        setSelectedStudent(null);
+      }
+
       setIsLoading(false);
-      setIsGoogleSignInLoading(false); // Reset Google sign-in loading state
     });
+
     return () => unsubscribe();
   }, []);
 
+  // Handle Google OAuth response
   useEffect(() => {
-    if (response?.type === "success") {
+    if (response?.type === 'success') {
       const { id_token } = response.params;
-      if (id_token) {
-        setIsGoogleSignInLoading(true); // Indicate that Firebase sign-in is in progress
-        AuthService.signInWithGoogle(id_token)
-          .then((user) => {
-            // onAuthStateChanged will handle setting currentUser and isLoading
-            if (!user) {
-              // Handle case where Firebase sign-in fails after Google success
-              console.error(
-                "Firebase sign-in failed after Google auth success."
-              );
-              setIsGoogleSignInLoading(false);
-            }
-          })
-          .catch((error) => {
-            console.error("Error signing in with Google credential:", error);
-            setIsGoogleSignInLoading(false);
-          });
-      } else {
-        console.warn("Google Sign-In success but no id_token received.");
-        setIsGoogleSignInLoading(false);
-      }
-    } else if (response?.type === "error") {
-      console.error("Google Sign-In error:", response.error);
+      handleGoogleSignIn(id_token);
+    } else if (response?.type === 'error') {
+      console.error('[AuthContext] Google OAuth error:', response.error);
       setIsGoogleSignInLoading(false);
-    } else if (response?.type === "cancel" || response?.type === "dismiss") {
-      console.log("Google Sign-In cancelled or dismissed by user.");
+    } else if (response?.type === 'cancel') {
       setIsGoogleSignInLoading(false);
     }
   }, [response]);
 
-  const signInWithGoogle = async (): Promise<void> => {
-    if (isGoogleSignInLoading || isLoading) return; // Prevent multiple sign-in attempts
+  /**
+   * Sign up with email and password
+   */
+  const signUpWithEmail = async (
+    email: string,
+    password: string,
+    displayName: string
+  ): Promise<void> => {
+    try {
+      const { user, profile } = await authService.signUpWithEmail(
+        email,
+        password,
+        displayName
+      );
+      setCurrentUser(user);
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('[AuthContext] Sign up error:', error);
+      throw error;
+    }
+  };
 
+  /**
+   * Sign in with email and password
+   */
+  const signInWithEmail = async (
+    email: string,
+    password: string
+  ): Promise<void> => {
+    try {
+      const { user, profile } = await authService.signInWithEmail(email, password);
+      setCurrentUser(user);
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('[AuthContext] Sign in error:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * Sign in with Google (trigger OAuth flow)
+   */
+  const signInWithGoogle = async (): Promise<void> => {
     setIsGoogleSignInLoading(true);
     try {
-      await promptAsync(); // This will open the Google Sign-In prompt
-      // The useEffect hook for 'response' will handle the result
-    } catch (error: any) {
-      // This catch block might catch errors from promptAsync itself, though most errors are in `response.error`
-      console.error("Error prompting Google Sign-In:", error);
-      if (error.code === "ERR_UNAVAILABLE") {
-        alert(
-          "Google Sign-In is not available on this device/platform. Ensure you have Google Play Services (Android) or a web browser (Web)."
-        );
-      }
+      await promptAsync();
+      // Response will be handled by useEffect
+    } catch (error) {
+      console.error('[AuthContext] Google sign in error:', error);
+      setIsGoogleSignInLoading(false);
+      throw error;
+    }
+  };
+
+  /**
+   * Handle Google sign in with ID token
+   */
+  const handleGoogleSignIn = async (idToken: string): Promise<void> => {
+    try {
+      const { user, profile } = await authService.signInWithGoogle(idToken);
+      setCurrentUser(user);
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('[AuthContext] Google sign in error:', error);
+      throw error;
+    } finally {
       setIsGoogleSignInLoading(false);
     }
   };
 
+  /**
+   * Sign out
+   */
   const signOut = async (): Promise<void> => {
-    setIsLoading(true);
     try {
-      await AuthService.signOut();
-      // The onAuthStateChanged listener will update currentUser to null and isLoading
+      await authService.signOut();
+      setCurrentUser(null);
+      setUserProfile(null);
     } catch (error) {
-      console.error("Error in AuthContext signOut:", error);
-      setIsLoading(false); // Ensure loading is false on error
+      console.error('[AuthContext] Sign out error:', error);
+      throw error;
     }
   };
 
-  const value = {
-    currentUser,
-    isLoading, // General auth loading state
-    signInWithGoogle,
-    signOut,
-    isGoogleSignInLoading, // Specific to Google interactive sign-in process
+  /**
+   * Send password reset email
+   */
+  const resetPassword = async (email: string): Promise<void> => {
+    try {
+      await authService.resetPassword(email);
+    } catch (error) {
+      console.error('[AuthContext] Reset password error:', error);
+      throw error;
+    }
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {/* Render children immediately; loading states can be used by components */}
-      {children}
-    </AuthContext.Provider>
-  );
+  /**
+   * Resend email verification
+   */
+  const resendEmailVerification = async (): Promise<void> => {
+    try {
+      await authService.resendEmailVerification();
+    } catch (error) {
+      console.error('[AuthContext] Resend verification error:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * Refresh user profile from Firestore
+   */
+  const refreshProfile = async (): Promise<void> => {
+    if (!currentUser) return;
+
+    try {
+      const profile = await authService.getUserProfile(currentUser.uid);
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('[AuthContext] Refresh profile error:', error);
+      throw error;
+    }
+  };
+
+  const value: AuthContextType = {
+    currentUser,
+    userProfile,
+    isLoading,
+    studentProfiles,
+    selectedStudent,
+    setSelectedStudent,
+    refreshStudentProfiles: () => refreshStudentProfiles(),
+    signUpWithEmail,
+    signInWithEmail,
+    signInWithGoogle,
+    signOut,
+    resetPassword,
+    resendEmailVerification,
+    isGoogleSignInLoading,
+    refreshProfile,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
+/**
+ * Hook to access auth context
+ */
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
+
+export default AuthContext;

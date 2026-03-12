@@ -44,26 +44,26 @@ const styles = StyleSheet.create({
 export const worksheetTemplates: WorksheetTemplate[] = [
   {
     id: "math",
-    title: "Math Worksheets",
-    description: "Practice basic math operations with customized worksheets",
-    icon: "🔢",
+    title: "Math Practice",
+    description: "Add, subtract, multiply and more!",
+    icon: "\uD83D\uDD22",
   },
   {
     id: "puzzle",
     title: "Math Puzzles",
-    description: "Fun mathematical puzzles to enhance problem-solving skills",
-    icon: "🧩",
+    description: "Solve fun number puzzles. Can you crack them all?",
+    icon: "\uD83E\uDDE9",
   },
   {
     id: "word-problem",
     title: "Word Problems",
-    description: "Math word problems for real-world problem solving",
-    icon: "📝",
+    description: "Use math to solve real stories!",
+    icon: "\uD83D\uDCDD",
   },
   {
     id: "logic",
-    title: "Logic Puzzles",
-    description: "Brain teasers and logical reasoning problems",
-    icon: "🧠",
+    title: "Brain Teasers",
+    description: "Figure out tricky riddles using clues. Like a detective!",
+    icon: "\uD83D\uDD75\uFE0F",
   },
 ];

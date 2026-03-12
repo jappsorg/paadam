@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { StyleSheet, ScrollView, View } from "react-native";
+import React, { useState, useEffect, useMemo } from "react";
+import { StyleSheet, ScrollView, View, TouchableOpacity } from "react-native";
 import {
   Button,
   Card,
@@ -9,7 +9,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import WorksheetService from "../../services/WorksheetService";
 import { WorksheetPreview } from "../../components/WorksheetPreview";
 import {
@@ -24,11 +24,19 @@ import {
   WORKSHEET_TYPE_LABELS,
 } from "../../types/worksheet";
 import { StorageService } from "../../services/StorageService";
-import { useAuth } from "../../context/AuthContext"; // Import useAuth
+import { useAuth } from "../../context/AuthContext";
+import { CharacterService } from "../../services/CharacterService";
+
+const CHARACTER_EMOJIS: Record<string, string> = {
+  ada: "\u{1F989}",
+  max: "\u{1F436}",
+  luna: "\u{1F431}",
+};
 
 export default function WorksheetGeneratorScreen() {
   const { type } = useLocalSearchParams<{ type: WorksheetType }>();
-  const { currentUser } = useAuth(); // Get currentUser from AuthContext
+  const { currentUser, selectedStudent } = useAuth();
+  const router = useRouter();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,8 +73,8 @@ export default function WorksheetGeneratorScreen() {
             // version: 1 // Optional: manage versions if templates can be edited
           });
 
-          // Step 2: Start a new attempt for this user with the created template
-          await StorageService.startWorksheetAttempt(
+          // Step 2: Start a new attempt and navigate to it
+          const attemptId = await StorageService.startWorksheetAttempt(
             currentUser.uid,
             templateId,
             generatedWorksheet.title,
@@ -75,7 +83,7 @@ export default function WorksheetGeneratorScreen() {
           console.log(
             `Worksheet template created (ID: ${templateId}) and attempt started for user.`
           );
-          // Optionally, provide feedback that worksheet attempt was saved.
+          router.push(`/attempt/${attemptId}`);
         } catch (saveError) {
           console.error(
             "Failed to create template or start worksheet attempt:",
@@ -141,12 +149,51 @@ export default function WorksheetGeneratorScreen() {
       .join("\n");
   };
 
+  // Auto-set grade from student profile
+  useEffect(() => {
+    if (selectedStudent?.grade) {
+      updateConfig({ grade: selectedStudent.grade as any });
+    }
+  }, [selectedStudent]);
+
   React.useEffect(() => {
     if (type) {
       updateConfig({ type });
       setWorksheet(null);
     }
   }, [type, updateConfig]);
+
+  // Adaptive difficulty suggestion based on skill mastery
+  const difficultySuggestion = useMemo(() => {
+    if (!selectedStudent?.skillsMastery) return null;
+
+    const skillId = config.subject.toLowerCase();
+    const mastery = selectedStudent.skillsMastery[skillId];
+    if (!mastery || mastery.questionsAttempted < 5) return null;
+
+    const level = mastery.masteryLevel;
+    let suggested: WorksheetDifficulty | null = null;
+    let message = "";
+
+    const charId = selectedStudent.selectedCharacterId || "ada";
+    const character = CharacterService.getCharacterById(charId);
+    const charName = character?.name || "Ada";
+    const charEmoji = CHARACTER_EMOJIS[charId] || CHARACTER_EMOJIS.ada;
+
+    if (level >= 85 && config.difficulty !== "hard") {
+      suggested = "hard";
+      message = `${charEmoji} Wow! You're really good at ${config.subject}! ${charName} thinks you're ready for Hard!`;
+    } else if (level >= 60 && config.difficulty === "easy") {
+      suggested = "medium";
+      message = `${charEmoji} You're doing great at ${config.subject}! ${charName} thinks you should try Medium!`;
+    } else if (level < 40 && config.difficulty !== "easy") {
+      suggested = "easy";
+      message = `${charEmoji} ${charName} says let's practice on Easy first. You'll get stronger!`;
+    }
+
+    if (!suggested) return null;
+    return { suggested, message };
+  }, [config.subject, config.difficulty, selectedStudent]);
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -158,7 +205,7 @@ export default function WorksheetGeneratorScreen() {
           />
           <Card.Content>
             <View style={styles.configItem}>
-              <Text variant="titleMedium">Grade Level</Text>
+              <Text variant="titleMedium">My Grade</Text>
               <View style={styles.buttonGroup} key={config.grade}>
                 {WORKSHEET_GRADE_OPTIONS.map((grade) => (
                   <Button
@@ -217,10 +264,25 @@ export default function WorksheetGeneratorScreen() {
                   label: level.label,
                 }))}
               />
+              {difficultySuggestion && (
+                <TouchableOpacity
+                  style={styles.suggestionBanner}
+                  onPress={() =>
+                    updateConfig({ difficulty: difficultySuggestion.suggested })
+                  }
+                >
+                  <Text style={styles.suggestionText}>
+                    {difficultySuggestion.message}
+                  </Text>
+                  <Text style={styles.suggestionAction}>
+                    Tap to switch to {difficultySuggestion.suggested}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <View style={styles.configItem}>
-              <Text variant="titleMedium">Number of Questions</Text>
+              <Text variant="titleMedium">How many questions?</Text>
               <SegmentedButtons
                 value={config.questionsCount.toString()}
                 onValueChange={(value) =>
@@ -254,7 +316,7 @@ export default function WorksheetGeneratorScreen() {
               disabled={loading}
               style={styles.generateButton}
             >
-              Generate Worksheet
+              Make My Worksheet!
             </Button>
           </Card.Content>
         </Card>
@@ -309,5 +371,24 @@ const styles = StyleSheet.create({
     color: "red",
     textAlign: "center",
     marginVertical: 8,
+  },
+  suggestionBanner: {
+    marginTop: 10,
+    padding: 12,
+    backgroundColor: "#E3F2FD",
+    borderRadius: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: "#4A90E2",
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: "#1565C0",
+    lineHeight: 21,
+  },
+  suggestionAction: {
+    fontSize: 14,
+    color: "#4A90E2",
+    fontWeight: "700",
+    marginTop: 4,
   },
 });
