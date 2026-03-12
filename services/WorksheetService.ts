@@ -55,16 +55,24 @@ export class WorksheetService {
         config.difficulty
       } level ${config.type} questions for grade ${config.grade}`,
     });
-    if (config.subject) {
-      prompts.push({
-        role: "user",
-        content: `Focus on subject: ${config.subject}`,
-      });
-    }
     prompts.push({
       role: "user",
       content: this.getPromptByType(config.type),
     });
+    if (config.subject) {
+      if (config.subject === "Random") {
+        prompts.push({
+          role: "user",
+          content: "Focus on random math topics",
+        });
+      } else {
+        prompts.push({
+          role: "user",
+          content: `Focus on subject: ${config.subject}`,
+        });
+      }
+    }
+
     return prompts;
   }
 

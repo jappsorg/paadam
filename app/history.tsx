@@ -1,182 +1,251 @@
-import React, { useEffect, useState } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { View, StyleSheet, FlatList, Alert } from "react-native";
 import {
-  Text,
-  ActivityIndicator,
   Button,
-  Portal,
-  Dialog,
+  Text,
+  Card,
+  ActivityIndicator,
+  useTheme,
+  IconButton,
+  Divider,
 } from "react-native-paper";
-import { Link, Stack } from "expo-router";
-import { StorageService } from "../services/StorageService";
-import { WorksheetCard } from "../components/WorksheetCard";
-import { Worksheet, WorksheetType } from "../types/worksheet";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { useAuth } from "../context/AuthContext";
+import { StorageService, WorksheetAttempt } from "../services/StorageService";
 
 export default function HistoryScreen() {
-  const [worksheets, setWorksheets] = useState<Worksheet[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { currentUser, isLoading: authLoading } = useAuth();
+  const theme = useTheme();
+  const router = useRouter();
+
+  const [worksheetAttempts, setWorksheetAttempts] = useState<
+    WorksheetAttempt[]
+  >([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showClearDialog, setShowClearDialog] = useState(false);
 
-  const loadHistory = async () => {
-    try {
-      setLoading(true);
-      const history = await StorageService.getWorksheetHistory();
-      setWorksheets(history.worksheets);
+  const fetchHistory = useCallback(async () => {
+    if (currentUser) {
+      setLoadingHistory(true);
       setError(null);
-    } catch (err) {
-      setError("Failed to load worksheet history");
-    } finally {
-      setLoading(false);
+      try {
+        const history = await StorageService.getWorksheetAttemptHistory(
+          currentUser.uid
+        );
+        setWorksheetAttempts(history);
+      } catch (err) {
+        console.error("Failed to fetch worksheet history. Error details:", err);
+        setError(
+          "Unable to load your worksheet history. Please check your connection or try again later."
+        );
+      } finally {
+        setLoadingHistory(false);
+      }
+    } else {
+      setWorksheetAttempts([]); // Clear history if user logs out
     }
-  };
-
-  const handleClearHistory = async () => {
-    try {
-      await StorageService.clearHistory();
-      setWorksheets([]);
-      setShowClearDialog(false);
-    } catch (err) {
-      setError("Failed to clear history");
-    }
-  };
-
-  const handleDeleteWorksheet = async (worksheetId: string) => {
-    try {
-      await StorageService.deleteWorksheet(worksheetId);
-      setWorksheets((prev) => prev.filter((w) => w.id !== worksheetId));
-    } catch (err) {
-      setError("Failed to delete worksheet");
-    }
-  };
+  }, [currentUser]);
 
   useEffect(() => {
-    loadHistory();
-  }, []);
+    if (!authLoading) {
+      // Only fetch if auth state is resolved
+      fetchHistory();
+    }
+  }, [currentUser, authLoading, fetchHistory]);
+
+  const handleDeleteAttempt = async (attemptId: string) => {
+    if (!attemptId) return;
+    Alert.alert(
+      "Delete Attempt",
+      "Are you sure you want to delete this worksheet attempt from your history?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await StorageService.deleteWorksheetAttempt(attemptId);
+              // Refresh history
+              fetchHistory();
+            } catch (err) {
+              console.error(
+                "Failed to delete worksheet attempt. Error details:",
+                err
+              );
+              Alert.alert(
+                "Error",
+                "Unable to delete worksheet attempt. Please retry or contact support if the issue persists."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleViewOrAttemptWorksheet = (attempt: WorksheetAttempt) => {
+    // Navigate to the attempt screen, passing attemptId
+    if (attempt.id) {
+      // We might also need to pass attempt.worksheetId (the template ID)
+      // if the attempt screen needs to fetch the master template separately.
+      router.push(`/attempt/${attempt.id}`);
+    } else {
+      Alert.alert("Error", "Attempt ID is missing, cannot open.");
+    }
+  };
+
+  if (authLoading || loadingHistory) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <ActivityIndicator animating={true} size="large" />
+          <Text style={styles.messageText}>Loading history...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <Text variant="headlineSmall" style={styles.messageText}>
+            Worksheet History
+          </Text>
+          <Text style={styles.messageText}>
+            Please log in to view your saved worksheets.
+          </Text>
+          <Button
+            mode="contained"
+            onPress={() => router.push("/profile")}
+            style={{ marginTop: 20 }}
+          >
+            Go to Profile
+          </Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <Text style={[styles.messageText, { color: theme.colors.error }]}>
+            {error}
+          </Text>
+          <Button onPress={fetchHistory}>Try Again</Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (worksheetAttempts.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <Text variant="headlineSmall" style={styles.messageText}>
+            Worksheet History
+          </Text>
+          <Text style={styles.messageText}>
+            You haven't generated any worksheets yet.
+          </Text>
+          <Button
+            mode="contained"
+            onPress={() => router.push("/(tabs)")}
+            style={{ marginTop: 20 }}
+          >
+            Generate a Worksheet
+          </Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const renderWorksheetItem = ({ item }: { item: WorksheetAttempt }) => (
+    <Card style={styles.card}>
+      <Card.Title
+        title={item.worksheetTitle || "Untitled Worksheet"}
+        subtitle={`Last activity: ${
+          item.lastActivityAt
+            ? new Date(item.lastActivityAt.seconds * 1000).toLocaleString()
+            : "N/A"
+        }`}
+        titleVariant="titleMedium"
+      />
+      <Card.Content>
+        {/* We might need to fetch template details (like type/difficulty) if not denormalized */}
+        {/* For now, just showing status and score from the attempt itself */}
+        <Text>Status: {item.status}</Text>
+        {item.score !== undefined && <Text>Score: {item.score}</Text>}
+        <Text>
+          Started:{" "}
+          {item.startedAt
+            ? new Date(item.startedAt.seconds * 1000).toLocaleDateString()
+            : "N/A"}
+        </Text>
+      </Card.Content>
+      <Card.Actions>
+        <Button
+          onPress={() => handleViewOrAttemptWorksheet(item)}
+          icon="play-circle-outline" // Changed icon for "attempt"
+        >
+          {item.status === "in-progress" || item.status === "paused"
+            ? "Resume"
+            : "View/Re-attempt"}
+        </Button>
+        <IconButton
+          icon="delete-outline"
+          onPress={() => item.id && handleDeleteAttempt(item.id)}
+        />
+      </Card.Actions>
+    </Card>
+  );
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: "Worksheet History",
-          headerRight: () => (
-            <Button
-              onPress={() => setShowClearDialog(true)}
-              disabled={worksheets.length === 0}
-            >
-              Clear All
-            </Button>
-          ),
-        }}
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <Text variant="headlineMedium" style={styles.title}>
+        Your Worksheet Attempts
+      </Text>
+      <FlatList
+        data={worksheetAttempts}
+        renderItem={renderWorksheetItem}
+        keyExtractor={(item) => item.id || Math.random().toString()}
+        contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => <Divider style={{ marginVertical: 8 }} />}
       />
-      <ScrollView style={styles.container}>
-        {loading ? (
-          <ActivityIndicator style={styles.loader} size="large" />
-        ) : error ? (
-          <View style={styles.centerContent}>
-            <Text variant="bodyLarge" style={styles.errorText}>
-              {error}
-            </Text>
-            <Button
-              mode="contained"
-              onPress={loadHistory}
-              style={styles.retryButton}
-            >
-              Retry
-            </Button>
-          </View>
-        ) : worksheets.length === 0 ? (
-          <View style={styles.centerContent}>
-            <Text variant="bodyLarge">No worksheets generated yet</Text>
-            <Link href="/" asChild>
-              <Button mode="contained" style={styles.createButton}>
-                Create Worksheet
-              </Button>
-            </Link>
-          </View>
-        ) : (
-          worksheets.map((worksheet) => (
-            <View key={worksheet.id} style={styles.worksheetContainer}>
-              <WorksheetCard
-                worksheet={{
-                  id: worksheet.id as WorksheetType,
-                  title: worksheet.title,
-                  description: `Generated on ${new Date(
-                    worksheet.createdAt
-                  ).toLocaleDateString()}`,
-                  icon:
-                    worksheet.type === "math"
-                      ? "🔢"
-                      : worksheet.type === "puzzle"
-                      ? "🧩"
-                      : worksheet.type === "word-problem"
-                      ? "📝"
-                      : worksheet.type === "logic"
-                      ? "🧠"
-                      : "🧪",
-                }}
-              />
-              <Button
-                mode="outlined"
-                onPress={() => handleDeleteWorksheet(worksheet.id)}
-                style={styles.deleteButton}
-              >
-                Delete
-              </Button>
-            </View>
-          ))
-        )}
-      </ScrollView>
-
-      <Portal>
-        <Dialog
-          visible={showClearDialog}
-          onDismiss={() => setShowClearDialog(false)}
-        >
-          <Dialog.Title>Clear History</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium">
-              Are you sure you want to clear all worksheet history?
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setShowClearDialog(false)}>Cancel</Button>
-            <Button onPress={handleClearHistory}>Clear</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-    </>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
   },
-  loader: {
-    marginTop: 20,
-  },
-  centerContent: {
+  centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 40,
+    padding: 20,
   },
-  errorText: {
-    color: "red",
-    marginBottom: 16,
+  messageText: {
+    textAlign: "center",
+    marginBottom: 10,
   },
-  retryButton: {
-    marginTop: 8,
+  title: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
-  createButton: {
-    marginTop: 16,
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
-  worksheetContainer: {
-    marginBottom: 16,
-  },
-  deleteButton: {
-    marginTop: 8,
+  card: {
+    marginVertical: 8,
   },
 });

@@ -1,82 +1,260 @@
+import {
+  collection,
+  doc,
+  addDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  serverTimestamp,
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "../firebaseConfig";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Worksheet, WorksheetHistory } from "../types/worksheet";
+import { WorksheetConfig, WorksheetQuestion } from "../types/worksheet";
 
-const HISTORY_STORAGE_KEY = "@worksheet_history";
-const MAX_HISTORY_ITEMS = 10;
+// Based on interactive_worksheet_db_schema.md
+export interface WorksheetTemplate {
+  id?: string;
+  title: string;
+  description?: string;
+  config: WorksheetConfig;
+  questions: WorksheetQuestion[];
+  createdBy?: string;
+  createdAt: Timestamp;
+  version?: number;
+}
+
+export interface QuestionAttemptData {
+  questionId: string;
+  userAnswer?: string;
+  isCorrect?: boolean;
+  status:
+    | "unseen"
+    | "seen"
+    | "answered"
+    | "correct"
+    | "incorrect-attempt"
+    | "skipped";
+  attemptsCount: number;
+  lastAttemptTimestamp?: Timestamp;
+}
+
+export interface WorksheetAttempt {
+  id?: string;
+  userId: string;
+  worksheetId: string;
+  worksheetTitle: string;
+  status: "not-started" | "in-progress" | "paused" | "completed";
+  score?: number;
+  currentQuestionIndex?: number;
+  questionsAttemptData: QuestionAttemptData[];
+  timeSpentSeconds?: number;
+  startedAt: Timestamp;
+  lastActivityAt: Timestamp;
+  completedAt?: Timestamp;
+}
+
+// For local caching if needed
+const ASYNC_STORAGE_WORKSHEET_ATTEMPTS_CACHE_PREFIX =
+  "@worksheet_attempts_cache_";
+const MAX_CACHED_ATTEMPTS_PER_USER = 10;
+
+const worksheetsRef = collection(db, "worksheets");
+const worksheetAttemptsRef = collection(db, "worksheetAttempts");
 
 export class StorageService {
-  static async getWorksheetHistory(): Promise<WorksheetHistory> {
-    try {
-      const historyJson = await AsyncStorage.getItem(HISTORY_STORAGE_KEY);
-      if (historyJson) {
-        return JSON.parse(historyJson) as WorksheetHistory;
-      }
-      return { worksheets: [] };
-    } catch (error) {
-      console.error("Error reading worksheet history:", error);
-      return { worksheets: [] };
+  /**
+   * Creates a new worksheet template in Firestore.
+   * @param templateData Data for the new worksheet template.
+   * @returns The ID of the newly created worksheet template document.
+   */
+  static async createWorksheetTemplate(
+    templateData: Omit<WorksheetTemplate, "id" | "createdAt" | "version"> & {
+      version?: number;
     }
+  ): Promise<string> {
+    const docRef = await addDoc(worksheetsRef, {
+      ...templateData,
+      version: templateData.version || 1,
+      createdAt: serverTimestamp(),
+    });
+    return docRef.id;
   }
 
-  static async addWorksheetToHistory(worksheet: Worksheet): Promise<void> {
-    try {
-      const history = await this.getWorksheetHistory();
-
-      // Add new worksheet at the beginning
-      history.worksheets.unshift(worksheet);
-
-      // Limit history size
-      if (history.worksheets.length > MAX_HISTORY_ITEMS) {
-        history.worksheets = history.worksheets.slice(0, MAX_HISTORY_ITEMS);
-      }
-
-      await AsyncStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
-    } catch (error) {
-      console.error("Error saving worksheet to history:", error);
-      throw new Error("Failed to save worksheet to history");
-    }
-  }
-
-  static async clearHistory(): Promise<void> {
-    try {
-      await AsyncStorage.removeItem(HISTORY_STORAGE_KEY);
-    } catch (error) {
-      console.error("Error clearing worksheet history:", error);
-      throw new Error("Failed to clear worksheet history");
-    }
-  }
-
-  static async deleteWorksheet(worksheetId: string): Promise<void> {
-    try {
-      const history = await this.getWorksheetHistory();
-      history.worksheets = history.worksheets.filter(
-        (worksheet) => worksheet.id !== worksheetId
-      );
-      await AsyncStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
-    } catch (error) {
-      console.error("Error deleting worksheet:", error);
-      throw new Error("Failed to delete worksheet");
-    }
-  }
-
-  static async saveWorksheetPdf(
+  /**
+   * Starts a new attempt for a given worksheet template.
+   * @param userId The ID of the user.
+   * @param worksheetId The worksheet template ID.
+   * @param worksheetTitle The worksheet title.
+   * @param templateQuestions The questions from the template.
+   * @returns The ID of the newly created worksheet attempt document.
+   */
+  static async startWorksheetAttempt(
+    userId: string,
     worksheetId: string,
-    pdfUrl: string
+    worksheetTitle: string,
+    templateQuestions: WorksheetQuestion[]
+  ): Promise<string> {
+    const attempt = {
+      userId,
+      worksheetId,
+      worksheetTitle,
+      status: "in-progress",
+      currentQuestionIndex: 0,
+      questionsAttemptData: templateQuestions.map((q) => ({
+        questionId: q.id,
+        status: "unseen",
+        attemptsCount: 0,
+      })),
+      timeSpentSeconds: 0,
+      startedAt: serverTimestamp(),
+      lastActivityAt: serverTimestamp(),
+    };
+
+    const docRef = await addDoc(worksheetAttemptsRef, attempt);
+    return docRef.id;
+  }
+
+  /**
+   * Updates an existing worksheet attempt.
+   * @param attemptId The ID of the attempt to update.
+   * @param updates Partial updates to apply to the attempt.
+   */
+  static async updateWorksheetAttempt(
+    attemptId: string,
+    updates: Partial<
+      Omit<WorksheetAttempt, "id" | "userId" | "worksheetId" | "startedAt">
+    >
+  ): Promise<void> {
+    const docRef = doc(db, "worksheetAttempts", attemptId);
+    const updateData = {
+      ...updates,
+      lastActivityAt: serverTimestamp(),
+    };
+    await updateDoc(docRef, updateData);
+  }
+
+  /**
+   * Retrieves worksheet attempt history for a specific user.
+   * @param userId The ID of the user.
+   * @returns A promise that resolves to an array of WorksheetAttempt objects.
+   */
+  static async getWorksheetAttemptHistory(
+    userId: string
+  ): Promise<WorksheetAttempt[]> {
+    try {
+      // First try to get from cache
+      const cachedAttempts = await this.getCachedWorksheetAttempts(userId);
+      if (cachedAttempts.length > 0) {
+        return cachedAttempts;
+      }
+
+      // If not in cache, fetch from Firestore
+      const q = query(
+        worksheetAttemptsRef,
+        where("userId", "==", userId),
+        orderBy("startedAt", "desc"),
+        limit(MAX_CACHED_ATTEMPTS_PER_USER)
+      );
+
+      const snapshot = await getDocs(q);
+      const attempts = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })) as WorksheetAttempt[];
+
+      // Cache the results
+      await this.cacheWorksheetAttempts(userId, attempts);
+
+      return attempts;
+    } catch (error) {
+      console.error("Error fetching worksheet history:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves a single worksheet attempt by its ID.
+   * @param attemptId The ID of the worksheet attempt.
+   * @returns A promise that resolves to the WorksheetAttempt object or null if not found.
+   */
+  static async getWorksheetAttemptById(
+    attemptId: string
+  ): Promise<WorksheetAttempt | null> {
+    try {
+      const docRef = doc(db, "worksheetAttempts", attemptId);
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) return null;
+      return { id: docSnap.id, ...docSnap.data() } as WorksheetAttempt;
+    } catch (error) {
+      console.error("Error fetching worksheet attempt:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves a single worksheet template by its ID.
+   * @param templateId The ID of the worksheet template document.
+   * @returns A promise that resolves to the WorksheetTemplate object or null if not found.
+   */
+  static async getWorksheetTemplateById(
+    templateId: string
+  ): Promise<WorksheetTemplate | null> {
+    try {
+      const docRef = doc(db, "worksheets", templateId);
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) return null;
+      return { id: docSnap.id, ...docSnap.data() } as WorksheetTemplate;
+    } catch (error) {
+      console.error("Error fetching worksheet template:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deletes a worksheet attempt.
+   * @param attemptId The ID of the attempt to delete.
+   */
+  static async deleteWorksheetAttempt(attemptId: string): Promise<void> {
+    try {
+      const docRef = doc(db, "worksheetAttempts", attemptId);
+      await deleteDoc(docRef);
+    } catch (error) {
+      console.error("Error deleting worksheet attempt:", error);
+      throw error;
+    }
+  }
+
+  private static async getCachedWorksheetAttempts(
+    userId: string
+  ): Promise<WorksheetAttempt[]> {
+    try {
+      const cached = await AsyncStorage.getItem(
+        `${ASYNC_STORAGE_WORKSHEET_ATTEMPTS_CACHE_PREFIX}${userId}`
+      );
+      return cached ? JSON.parse(cached) : [];
+    } catch (error) {
+      console.warn("Error reading from cache:", error);
+      return [];
+    }
+  }
+
+  private static async cacheWorksheetAttempts(
+    userId: string,
+    attempts: WorksheetAttempt[]
   ): Promise<void> {
     try {
-      const history = await this.getWorksheetHistory();
-      const worksheet = history.worksheets.find((w) => w.id === worksheetId);
-
-      if (worksheet) {
-        worksheet.pdfUrl = pdfUrl;
-        await AsyncStorage.setItem(
-          HISTORY_STORAGE_KEY,
-          JSON.stringify(history)
-        );
-      }
+      await AsyncStorage.setItem(
+        `${ASYNC_STORAGE_WORKSHEET_ATTEMPTS_CACHE_PREFIX}${userId}`,
+        JSON.stringify(attempts)
+      );
     } catch (error) {
-      console.error("Error saving worksheet PDF:", error);
-      throw new Error("Failed to save worksheet PDF");
+      console.warn("Error writing to cache:", error);
     }
   }
 }
