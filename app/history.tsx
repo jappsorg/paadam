@@ -35,8 +35,10 @@ export default function HistoryScreen() {
         );
         setWorksheetAttempts(history);
       } catch (err) {
-        console.error("Failed to fetch history:", err);
-        setError("Failed to load your worksheet history. Please try again.");
+        console.error("Failed to fetch worksheet history. Error details:", err);
+        setError(
+          "Unable to load your worksheet history. Please check your connection or try again later."
+        );
       } finally {
         setLoadingHistory(false);
       }
@@ -68,10 +70,13 @@ export default function HistoryScreen() {
               // Refresh history
               fetchHistory();
             } catch (err) {
-              console.error("Failed to delete attempt:", err);
+              console.error(
+                "Failed to delete worksheet attempt. Error details:",
+                err
+              );
               Alert.alert(
                 "Error",
-                "Failed to delete worksheet attempt. Please try again."
+                "Unable to delete worksheet attempt. Please retry or contact support if the issue persists."
               );
             }
           },

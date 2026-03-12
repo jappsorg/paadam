@@ -1,0 +1,13 @@
+[     747ms] [WARNING] [2026-03-12T19:56:36.415Z]  @firebase/firestore: Firestore (12.10.0): enableIndexedDbPersistence() will be deprecated in the future, you can use `FirestoreSettings.cache` instead. @ http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&transform.routerRoot=app:176227
+[     754ms] [WARNING] "shadow*" style props are deprecated. Use "boxShadow". @ http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&transform.routerRoot=app:10120
+[     764ms] [WARNING] props.pointerEvents is deprecated. Use style.pointerEvents @ http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&transform.routerRoot=app:10120
+[   93321ms] [ERROR] [Auth] Get user profile error: FirebaseError: Missing or insufficient permissions. @ http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&transform.routerRoot=app:4712
+[   93321ms] [ERROR] [AuthContext] Failed to load profile: FirebaseError: Missing or insufficient permissions. @ http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&transform.routerRoot=app:4712
+[   93456ms] [ERROR] [AuthContext] Failed to load student profiles: FirebaseError: Missing or insufficient permissions. @ http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&transform.routerRoot=app:4712
+[   94008ms] [ERROR] [Auth] Create profile error: FirebaseError: Missing or insufficient permissions. @ http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&transform.routerRoot=app:4712
+[   94008ms] [ERROR] [Auth] Sign up error: Missing or insufficient permissions. @ http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&transform.routerRoot=app:4712
+[   94008ms] [ERROR] [AuthContext] Sign up error: Error: Missing or insufficient permissions.
+    at AuthService.handleAuthError (http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&transform.routerRoot=app:69639:18)
+    at AuthService.signUpWithEmail (http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&transform.routerRoot=app:69389:20)
+    at async signUpWithEmail (http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&transform.routerRoot=app:69155:13)
+    at async handleEmailSignUp (http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&transform.routerRoot=app:89492:9) @ http://localhost:8081/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&transform.routerRoot=app:4712

@@ -1,6 +1,19 @@
-import firestore, {
-  FirebaseFirestoreTypes,
-} from "@react-native-firebase/firestore";
+import {
+  collection,
+  doc,
+  addDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  serverTimestamp,
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "../firebaseConfig";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { WorksheetConfig, WorksheetQuestion } from "../types/worksheet";
 
@@ -12,7 +25,7 @@ export interface WorksheetTemplate {
   config: WorksheetConfig;
   questions: WorksheetQuestion[];
   createdBy?: string;
-  createdAt: FirebaseFirestoreTypes.Timestamp;
+  createdAt: Timestamp;
   version?: number;
 }
 
@@ -28,7 +41,7 @@ export interface QuestionAttemptData {
     | "incorrect-attempt"
     | "skipped";
   attemptsCount: number;
-  lastAttemptTimestamp?: FirebaseFirestoreTypes.Timestamp;
+  lastAttemptTimestamp?: Timestamp;
 }
 
 export interface WorksheetAttempt {
@@ -41,9 +54,9 @@ export interface WorksheetAttempt {
   currentQuestionIndex?: number;
   questionsAttemptData: QuestionAttemptData[];
   timeSpentSeconds?: number;
-  startedAt: FirebaseFirestoreTypes.Timestamp;
-  lastActivityAt: FirebaseFirestoreTypes.Timestamp;
-  completedAt?: FirebaseFirestoreTypes.Timestamp;
+  startedAt: Timestamp;
+  lastActivityAt: Timestamp;
+  completedAt?: Timestamp;
 }
 
 // For local caching if needed
@@ -51,11 +64,10 @@ const ASYNC_STORAGE_WORKSHEET_ATTEMPTS_CACHE_PREFIX =
   "@worksheet_attempts_cache_";
 const MAX_CACHED_ATTEMPTS_PER_USER = 10;
 
-export class StorageService {
-  private static worksheetsCollection = firestore().collection("worksheets");
-  private static worksheetAttemptsCollection =
-    firestore().collection("worksheetAttempts");
+const worksheetsRef = collection(db, "worksheets");
+const worksheetAttemptsRef = collection(db, "worksheetAttempts");
 
+export class StorageService {
   /**
    * Creates a new worksheet template in Firestore.
    * @param templateData Data for the new worksheet template.
@@ -66,10 +78,10 @@ export class StorageService {
       version?: number;
     }
   ): Promise<string> {
-    const docRef = await this.worksheetsCollection.add({
+    const docRef = await addDoc(worksheetsRef, {
       ...templateData,
       version: templateData.version || 1,
-      createdAt: firestore.FieldValue.serverTimestamp(),
+      createdAt: serverTimestamp(),
     });
     return docRef.id;
   }
@@ -77,8 +89,10 @@ export class StorageService {
   /**
    * Starts a new attempt for a given worksheet template.
    * @param userId The ID of the user.
-   * @param worksheetData The core worksheet data.
-   * @returns The ID of the newly created worksheet document.
+   * @param worksheetId The worksheet template ID.
+   * @param worksheetTitle The worksheet title.
+   * @param templateQuestions The questions from the template.
+   * @returns The ID of the newly created worksheet attempt document.
    */
   static async startWorksheetAttempt(
     userId: string,
@@ -86,7 +100,7 @@ export class StorageService {
     worksheetTitle: string,
     templateQuestions: WorksheetQuestion[]
   ): Promise<string> {
-    const attempt: Omit<WorksheetAttempt, "id"> = {
+    const attempt = {
       userId,
       worksheetId,
       worksheetTitle,
@@ -98,13 +112,11 @@ export class StorageService {
         attemptsCount: 0,
       })),
       timeSpentSeconds: 0,
-      startedAt:
-        firestore.FieldValue.serverTimestamp() as FirebaseFirestoreTypes.Timestamp,
-      lastActivityAt:
-        firestore.FieldValue.serverTimestamp() as FirebaseFirestoreTypes.Timestamp,
+      startedAt: serverTimestamp(),
+      lastActivityAt: serverTimestamp(),
     };
 
-    const docRef = await this.worksheetAttemptsCollection.add(attempt);
+    const docRef = await addDoc(worksheetAttemptsRef, attempt);
     return docRef.id;
   }
 
@@ -119,11 +131,12 @@ export class StorageService {
       Omit<WorksheetAttempt, "id" | "userId" | "worksheetId" | "startedAt">
     >
   ): Promise<void> {
+    const docRef = doc(db, "worksheetAttempts", attemptId);
     const updateData = {
       ...updates,
-      lastActivityAt: firestore.FieldValue.serverTimestamp(),
+      lastActivityAt: serverTimestamp(),
     };
-    await this.worksheetAttemptsCollection.doc(attemptId).update(updateData);
+    await updateDoc(docRef, updateData);
   }
 
   /**
@@ -142,15 +155,17 @@ export class StorageService {
       }
 
       // If not in cache, fetch from Firestore
-      const snapshot = await this.worksheetAttemptsCollection
-        .where("userId", "==", userId)
-        .orderBy("startedAt", "desc")
-        .limit(MAX_CACHED_ATTEMPTS_PER_USER)
-        .get();
+      const q = query(
+        worksheetAttemptsRef,
+        where("userId", "==", userId),
+        orderBy("startedAt", "desc"),
+        limit(MAX_CACHED_ATTEMPTS_PER_USER)
+      );
 
-      const attempts = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
+      const snapshot = await getDocs(q);
+      const attempts = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
       })) as WorksheetAttempt[];
 
       // Cache the results
@@ -172,9 +187,10 @@ export class StorageService {
     attemptId: string
   ): Promise<WorksheetAttempt | null> {
     try {
-      const doc = await this.worksheetAttemptsCollection.doc(attemptId).get();
-      if (!doc.exists) return null;
-      return { id: doc.id, ...doc.data() } as WorksheetAttempt;
+      const docRef = doc(db, "worksheetAttempts", attemptId);
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) return null;
+      return { id: docSnap.id, ...docSnap.data() } as WorksheetAttempt;
     } catch (error) {
       console.error("Error fetching worksheet attempt:", error);
       throw error;
@@ -190,9 +206,10 @@ export class StorageService {
     templateId: string
   ): Promise<WorksheetTemplate | null> {
     try {
-      const doc = await this.worksheetsCollection.doc(templateId).get();
-      if (!doc.exists) return null;
-      return { id: doc.id, ...doc.data() } as WorksheetTemplate;
+      const docRef = doc(db, "worksheets", templateId);
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) return null;
+      return { id: docSnap.id, ...docSnap.data() } as WorksheetTemplate;
     } catch (error) {
       console.error("Error fetching worksheet template:", error);
       throw error;
@@ -205,7 +222,8 @@ export class StorageService {
    */
   static async deleteWorksheetAttempt(attemptId: string): Promise<void> {
     try {
-      await this.worksheetAttemptsCollection.doc(attemptId).delete();
+      const docRef = doc(db, "worksheetAttempts", attemptId);
+      await deleteDoc(docRef);
     } catch (error) {
       console.error("Error deleting worksheet attempt:", error);
       throw error;

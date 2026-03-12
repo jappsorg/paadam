@@ -19,7 +19,7 @@ import {
   QuestionAttemptData,
 } from "../../services/StorageService";
 import { WorksheetQuestion } from "../../types/worksheet";
-import { serverTimestamp } from "@react-native-firebase/firestore";
+import { serverTimestamp } from "firebase/firestore";
 import CharacterCompanion, {
   CompanionMood,
 } from "../../components/CharacterCompanion";

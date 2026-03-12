@@ -1,25 +1,68 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp, getApp } from "@react-native-firebase/app";
-import { getAuth } from "@react-native-firebase/auth";
-import { getFirestore } from "@react-native-firebase/firestore";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+/**
+ * Firebase Configuration
+ *
+ * Using Firebase Web SDK for cross-platform compatibility
+ * Supports: Authentication, Firestore, Storage, Functions
+ */
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
+import { getStorage, FirebaseStorage } from "firebase/storage";
+import { getFunctions, Functions } from "firebase/functions";
+
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAleLSJrJIMKc4M7ZrWepvNOfQzEabR1hI",
-  authDomain: "paadam-e5807.firebaseapp.com",
-  projectId: "paadam-e5807",
-  storageBucket: "paadam-e5807.firebasestorage.app",
-  messagingSenderId: "165060975319",
-  appId: "1:165060975319:web:e84496b3b810e9edbbee92",
-  measurementId: "G-PFQ5EGC93V",
+  apiKey:
+    process.env.EXPO_PUBLIC_FIREBASE_API_KEY ||
+    "AIzaSyAleLSJrJIMKc4M7ZrWepvNOfQzEabR1hI",
+  authDomain:
+    process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN ||
+    "paadam-e5807.firebaseapp.com",
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "paadam-e5807",
+  storageBucket:
+    process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET ||
+    "paadam-e5807.firebasestorage.app",
+  messagingSenderId:
+    process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "165060975319",
+  appId:
+    process.env.EXPO_PUBLIC_FIREBASE_APP_ID ||
+    "1:165060975319:web:e84496b3b810e9edbbee92",
+  measurementId:
+    process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-PFQ5EGC93V",
 };
 
-// Initialize Firebase
-initializeApp(firebaseConfig);
-//const analytics = getAnalytics(app);
+// Initialize Firebase (singleton pattern)
+let app: FirebaseApp;
 
-//export const auth = getAuth(app);
-//export const db = getFirestore(app);
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
+  console.log("[Firebase] Initialized successfully");
+} else {
+  app = getApp();
+  console.log("[Firebase] Using existing app instance");
+}
+
+// Initialize services
+export const auth: Auth = getAuth(app);
+export const db: Firestore = getFirestore(app);
+export const storage: FirebaseStorage = getStorage(app);
+export const functions: Functions = getFunctions(app);
+
+// Enable Firestore offline persistence
+import { enableIndexedDbPersistence } from "firebase/firestore";
+
+// Enable persistence (with error handling for browsers that don't support it)
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code === "failed-precondition") {
+    console.warn(
+      "[Firestore] Multiple tabs open, persistence can only be enabled in one tab at a time.",
+    );
+  } else if (err.code === "unimplemented") {
+    console.warn(
+      "[Firestore] The current browser does not support persistence.",
+    );
+  }
+});
+
+export default app;
