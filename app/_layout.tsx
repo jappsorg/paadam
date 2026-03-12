@@ -3,7 +3,7 @@ import { PaperProvider } from "react-native-paper";
 import { StatusBar } from "expo-status-bar";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import theme from "@/theme";
+import theme, { colors, fontSizes } from "@/theme";
 import { AuthProvider } from "../context/AuthContext";
 import AppNavigator from "../components/navigation/AppNavigator";
 
@@ -16,14 +16,14 @@ export default function AppLayout() {
           <AppNavigator>
             <Tabs
               screenOptions={{
-                tabBarActiveTintColor: theme.colors.text,
-                tabBarInactiveTintColor: theme.colors.placeholder,
+                tabBarActiveTintColor: colors.textPrimary,
+                tabBarInactiveTintColor: colors.textPlaceholder,
                 tabBarLabelStyle: {
-                  fontSize: 12,
+                  fontSize: fontSizes.xs,
                 },
                 tabBarStyle: {
-                  backgroundColor: theme.colors.surface,
-                  borderTopColor: theme.colors.backdrop,
+                  backgroundColor: colors.surface,
+                  borderTopColor: colors.backdrop,
                 },
               }}
             >

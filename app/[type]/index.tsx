@@ -41,6 +41,8 @@ export default function WorksheetGeneratorScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [worksheet, setWorksheet] = useState<Worksheet | null>(null);
+  const hasProfile = !!selectedStudent;
+  const [showAdvanced, setShowAdvanced] = useState(!hasProfile);
 
   const theme = useAppTheme();
 
@@ -154,6 +156,7 @@ export default function WorksheetGeneratorScreen() {
     if (selectedStudent?.grade) {
       updateConfig({ grade: selectedStudent.grade as any });
     }
+    setShowAdvanced(!selectedStudent);
   }, [selectedStudent]);
 
   React.useEffect(() => {
@@ -204,6 +207,18 @@ export default function WorksheetGeneratorScreen() {
             titleVariant="headlineMedium"
           />
           <Card.Content>
+            {hasProfile && !showAdvanced ? (
+              <View style={styles.quickStart}>
+                <Text variant="bodyLarge" style={styles.quickStartText}>
+                  Ready for {selectedStudent.name}! Grade {config.grade},{" "}
+                  {config.difficulty} difficulty.
+                </Text>
+                <TouchableOpacity onPress={() => setShowAdvanced(true)}>
+                  <Text style={styles.changeSettingsLink}>Change settings</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+            <>
             <View style={styles.configItem}>
               <Text variant="titleMedium">My Grade</Text>
               <View style={styles.buttonGroup} key={config.grade}>
@@ -306,6 +321,8 @@ export default function WorksheetGeneratorScreen() {
                 color={theme.colors.tertiary}
               />
             </View>
+            </>
+            )}
 
             {error && <Text style={styles.error}>{error}</Text>}
 
@@ -390,5 +407,16 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: fontWeights.bold,
     marginTop: spacing.xs,
+  },
+  quickStart: {
+    paddingVertical: spacing.lg,
+    gap: spacing.sm,
+  },
+  quickStartText: {
+    color: colors.textSecondary,
+  },
+  changeSettingsLink: {
+    color: colors.primary,
+    ...textPresets.labelSmall,
   },
 });
