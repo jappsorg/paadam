@@ -17,6 +17,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CharacterService, { Character } from "../../services/CharacterService";
+import { PrimaryButton, StickyFooter } from "@/components/ui";
+import { colors, spacing, radii, fontSizes, fontWeights, shadows, textPresets, sizes } from "@/theme";
 
 const { width } = Dimensions.get("window");
 
@@ -38,11 +40,9 @@ export default function CharacterSelection({
     setSelectedCharacter(characterId);
   };
 
-  const handleContinue = () => {
-    if (selectedCharacter) {
-      onCharacterSelected(selectedCharacter);
-    }
-  };
+  const buttonTitle = selectedCharacter
+    ? `Let's Learn with ${CharacterService.getCharacterById(selectedCharacter)?.name}!`
+    : "Choose a Companion";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -69,22 +69,13 @@ export default function CharacterSelection({
         ))}
       </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[
-            styles.continueButton,
-            !selectedCharacter && styles.continueButtonDisabled,
-          ]}
-          onPress={handleContinue}
+      <StickyFooter>
+        <PrimaryButton
+          title={buttonTitle}
+          onPress={() => selectedCharacter && onCharacterSelected(selectedCharacter)}
           disabled={!selectedCharacter}
-        >
-          <Text style={styles.continueButtonText}>
-            {selectedCharacter
-              ? `Let's Learn with ${CharacterService.getCharacterById(selectedCharacter)?.name}!`
-              : "Choose a Companion"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+        />
+      </StickyFooter>
     </SafeAreaView>
   );
 }
@@ -159,164 +150,116 @@ function CharacterCard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: colors.background,
   },
   header: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: "#FFFFFF",
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.surface,
+    borderBottomLeftRadius: radii.xxl,
+    borderBottomRightRadius: radii.xxl,
+    ...shadows.sm,
   },
   greeting: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#495057",
-    marginBottom: 8,
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.semibold,
+    color: colors.unselectedText,
+    marginBottom: spacing.sm,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#212529",
-    marginBottom: 8,
+    fontSize: fontSizes.xxxl,
+    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
-    color: "#6C757D",
+    fontSize: fontSizes.base,
+    color: colors.textSecondary,
     lineHeight: 22,
   },
   scrollView: {
     flex: 1,
   },
   charactersContainer: {
-    padding: 16,
+    padding: spacing.lg,
     paddingBottom: 100,
   },
   card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    marginBottom: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    marginBottom: spacing.lg,
     overflow: "hidden",
     borderWidth: 3,
     borderColor: "transparent",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    ...shadows.md,
   },
   cardSelected: {
-    borderColor: "#4CAF50",
-    shadowColor: "#4CAF50",
+    borderColor: colors.selected,
+    shadowColor: colors.selected,
     shadowOpacity: 0.3,
   },
   cardImageContainer: {
     height: 180,
-    backgroundColor: "#E3F2FD",
+    backgroundColor: colors.primaryLight,
     justifyContent: "center",
     alignItems: "center",
   },
   characterPlaceholder: {
-    width: 140,
-    height: 140,
-    backgroundColor: "#FFFFFF",
+    width: sizes.avatarXl,
+    height: sizes.avatarXl,
+    backgroundColor: colors.surface,
     borderRadius: 70,
     justifyContent: "center",
     alignItems: "center",
   },
   characterEmoji: {
-    fontSize: 80,
+    fontSize: sizes.emojiXxl,
   },
   cardContent: {
-    padding: 20,
+    padding: spacing.xl,
   },
   characterName: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#212529",
-    marginBottom: 8,
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
   },
   characterDescription: {
     fontSize: 15,
-    color: "#495057",
+    color: colors.unselectedText,
     lineHeight: 22,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   traitBadges: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: spacing.sm,
   },
   traitBadge: {
-    backgroundColor: "#E9ECEF",
-    paddingHorizontal: 12,
+    backgroundColor: colors.borderLight,
+    paddingHorizontal: spacing.md,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: radii.md,
   },
   traitText: {
-    fontSize: 13,
-    color: "#495057",
-    fontWeight: "600",
+    fontSize: fontSizes.sm,
+    color: colors.unselectedText,
+    fontWeight: fontWeights.semibold,
   },
   selectedBadge: {
     position: "absolute",
-    top: 16,
-    right: 16,
-    backgroundColor: "#4CAF50",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    top: spacing.lg,
+    right: spacing.lg,
+    backgroundColor: colors.selected,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.xl,
+    ...shadows.sm,
   },
   selectedBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    paddingBottom: 32,
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  continueButton: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: "center",
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  continueButtonDisabled: {
-    backgroundColor: "#DEE2E6",
-    shadowOpacity: 0.1,
-  },
-  continueButtonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "bold",
+    color: colors.surface,
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
   },
 });

@@ -17,6 +17,7 @@ import { useAuth } from "../../context/AuthContext";
 import { studentProfileService } from "../../services/StudentProfileService";
 import { assetDownloadManager } from "../../services/AssetDownloadManager";
 import { authService } from "../../services/AuthService";
+import { colors, spacing, radii, fontSizes, fontWeights, sizes } from "@/theme";
 
 type OnboardingStep = "profile" | "character" | "downloading" | "complete";
 
@@ -139,7 +140,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         <View style={styles.loadingContainer}>
           <Text style={styles.successEmoji}>🎉</Text>
           <Text style={styles.loadingTitle}>All Set!</Text>
-          <ActivityIndicator size="large" color="#4CAF50" />
+          <ActivityIndicator size="large" color={colors.success} />
         </View>
       );
 
@@ -151,55 +152,55 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: colors.background,
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    padding: spacing.xxl,
   },
   loadingTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#212529",
-    marginBottom: 12,
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
     textAlign: "center",
   },
   loadingSubtitle: {
-    fontSize: 16,
-    color: "#6C757D",
-    marginBottom: 32,
+    fontSize: fontSizes.base,
+    color: colors.textSecondary,
+    marginBottom: spacing.xxxl,
     textAlign: "center",
   },
   progressContainer: {
     width: "100%",
     maxWidth: 300,
     alignItems: "center",
-    gap: 12,
+    gap: spacing.md,
   },
   progressBar: {
     width: "100%",
-    height: 12,
-    backgroundColor: "#E9ECEF",
-    borderRadius: 6,
+    height: sizes.progressBarHeight,
+    backgroundColor: colors.borderLight,
+    borderRadius: radii.sm,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#4CAF50",
-    borderRadius: 6,
+    backgroundColor: colors.success,
+    borderRadius: radii.sm,
   },
   progressText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#495057",
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.semibold,
+    color: colors.unselectedText,
   },
   errorText: {
-    fontSize: 14,
-    color: "#DC3545",
-    marginTop: 16,
+    fontSize: fontSizes.md,
+    color: colors.error,
+    marginTop: spacing.lg,
     textAlign: "center",
   },
   successEmoji: {
-    fontSize: 80,
-    marginBottom: 16,
+    fontSize: sizes.emojiXxl,
+    marginBottom: spacing.lg,
   },
 });
