@@ -3,6 +3,7 @@ import { StyleSheet } from "react-native";
 import { Card, Text } from "react-native-paper";
 import { Link } from "expo-router";
 import { WorksheetType } from "@/types/worksheet";
+import { colors, spacing, shadows } from "@/theme";
 
 type WorksheetTemplate = {
   id: WorksheetType;
@@ -35,9 +36,9 @@ export const WorksheetCard: React.FC<WorksheetCardProps> = ({ worksheet }) => {
 
 const styles = StyleSheet.create({
   card: {
-    margin: 8,
-    marginBottom: 16,
-    elevation: 4,
+    margin: spacing.sm,
+    marginBottom: spacing.lg,
+    ...shadows.md,
   },
 });
 

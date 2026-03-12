@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Animated } from "react-native";
 import { Text, Surface } from "react-native-paper";
 import { CharacterService } from "../services/CharacterService";
+import { colors, spacing, radii, sizes, fontSizes, fontWeights } from "@/theme";
 
 export type CompanionMood =
   | "idle"
@@ -212,51 +213,51 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.md,
   },
   avatarContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#FFF3E0",
+    width: sizes.avatarMd,
+    height: sizes.avatarMd,
+    borderRadius: sizes.avatarMd / 2,
+    backgroundColor: colors.avatarBackground,
     justifyContent: "center",
     alignItems: "center",
   },
   avatar: {
-    fontSize: 32,
+    fontSize: sizes.emojiMd,
   },
   moodIndicator: {
     position: "absolute",
-    bottom: -2,
-    right: -2,
-    fontSize: 16,
+    bottom: -spacing.xxs,
+    right: -spacing.xxs,
+    fontSize: sizes.emojiSm,
   },
   speechBubble: {
     flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
-    borderTopLeftRadius: 4,
-    backgroundColor: "#F0F4FF",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: radii.lg,
+    borderTopLeftRadius: radii.xs,
+    backgroundColor: colors.speechBubbleDefault,
   },
   speechBubbleCorrect: {
-    backgroundColor: "#E8F5E9",
+    backgroundColor: colors.speechBubbleCorrect,
   },
   speechBubbleIncorrect: {
-    backgroundColor: "#FFF3E0",
+    backgroundColor: colors.speechBubbleIncorrect,
   },
   characterName: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#64748B",
-    marginBottom: 2,
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    color: colors.textTertiary,
+    marginBottom: spacing.xxs,
   },
   message: {
-    fontSize: 14,
+    fontSize: fontSizes.md,
     lineHeight: 20,
-    color: "#334155",
+    color: colors.slate700,
   },
 });
 

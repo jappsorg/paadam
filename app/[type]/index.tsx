@@ -6,8 +6,8 @@ import {
   Text,
   SegmentedButtons,
   Switch,
-  useTheme,
 } from "react-native-paper";
+import { colors, spacing, radii, fontSizes, fontWeights, textPresets, useAppTheme } from "@/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import WorksheetService from "../../services/WorksheetService";
@@ -42,7 +42,7 @@ export default function WorksheetGeneratorScreen() {
   const [error, setError] = useState<string | null>(null);
   const [worksheet, setWorksheet] = useState<Worksheet | null>(null);
 
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   const [config, setConfig] = useState<WorksheetConfig>({
     type: type || "math",
@@ -340,55 +340,55 @@ export default function WorksheetGeneratorScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: spacing.lg,
   },
   card: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   configItem: {
-    marginVertical: 12,
+    marginVertical: spacing.md,
   },
   input: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   generateButton: {
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
   buttonGroup: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   buttonInGroup: {
-    marginVertical: 4,
-    marginHorizontal: 4,
+    marginVertical: spacing.xs,
+    marginHorizontal: spacing.xs,
   },
   buttonInGroupSelected: {
     borderWidth: 2,
-    borderColor: "#4CAF50",
+    borderColor: colors.selected,
   },
   error: {
-    color: "red",
+    color: colors.error,
     textAlign: "center",
-    marginVertical: 8,
+    marginVertical: spacing.sm,
   },
   suggestionBanner: {
-    marginTop: 10,
-    padding: 12,
-    backgroundColor: "#E3F2FD",
-    borderRadius: 10,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.infoLight,
+    borderRadius: radii.md,
     borderLeftWidth: 3,
-    borderLeftColor: "#4A90E2",
+    borderLeftColor: colors.primary,
   },
   suggestionText: {
-    fontSize: 14,
-    color: "#1565C0",
+    fontSize: fontSizes.md,
+    color: colors.blue700,
     lineHeight: 21,
   },
   suggestionAction: {
-    fontSize: 14,
-    color: "#4A90E2",
-    fontWeight: "700",
-    marginTop: 4,
+    fontSize: fontSizes.md,
+    color: colors.primary,
+    fontWeight: fontWeights.bold,
+    marginTop: spacing.xs,
   },
 });

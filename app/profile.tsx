@@ -1,35 +1,29 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
-import {
-  Button,
-  Text,
-  Avatar,
-  Card,
-  ActivityIndicator,
-  useTheme,
-} from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Button, Text, Avatar, Card } from "react-native-paper";
 import { useAuth } from "../context/AuthContext";
+import { ScreenContainer, LoadingState, EmptyState } from "@/components/ui";
+import { useAppTheme } from "@/theme";
+import { colors, spacing } from "@/theme";
 
 export default function ProfileScreen() {
   const { currentUser, isLoading, signInWithGoogle, signOut } = useAuth();
-  const theme = useTheme();
+  const theme = useAppTheme();
+
+  const handleGoogleSignIn = () => {
+    signInWithGoogle();
+  };
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centered}>
-          <ActivityIndicator animating={true} size="large" />
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
-      </SafeAreaView>
+      <ScreenContainer noScroll>
+        <LoadingState />
+      </ScreenContainer>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <ScreenContainer noScroll>
       <Card style={styles.card}>
         <Card.Title title="Profile" titleVariant="headlineMedium" />
         <Card.Content>
@@ -58,65 +52,37 @@ export default function ProfileScreen() {
               </Button>
             </View>
           ) : (
-            <View style={styles.signInContainer}>
-              <Text variant="titleMedium" style={styles.signInText}>
-                Sign in to save your worksheets and track your progress.
-              </Text>
-              <Button
-                mode="contained"
-                onPress={signInWithGoogle}
-                style={styles.button}
-                icon="google"
-                loading={isLoading} // Show loading on button if auth is in progress
-                disabled={isLoading}
-              >
-                Sign In with Google
-              </Button>
-            </View>
+            <EmptyState
+              emoji="👋"
+              title="Welcome!"
+              subtitle="Sign in to save your worksheets and track your progress."
+              actionLabel="Sign In with Google"
+              onAction={handleGoogleSignIn}
+            />
           )}
         </Card.Content>
       </Card>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 10,
-  },
   card: {
     flex: 1,
   },
   userInfoContainer: {
     alignItems: "center",
-    paddingVertical: 20,
+    paddingVertical: spacing.xl,
   },
   avatar: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   text: {
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  signInContainer: {
-    alignItems: "center",
-    paddingVertical: 40,
-  },
-  signInText: {
-    marginBottom: 20,
+    marginBottom: spacing.sm,
     textAlign: "center",
   },
   button: {
-    marginTop: 20,
+    marginTop: spacing.xl,
     width: "80%",
   },
 });

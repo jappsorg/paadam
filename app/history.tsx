@@ -1,22 +1,22 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, StyleSheet, FlatList, Alert } from "react-native";
+import { StyleSheet, FlatList, Alert } from "react-native";
 import {
   Button,
   Text,
   Card,
-  ActivityIndicator,
-  useTheme,
   IconButton,
   Divider,
 } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { StorageService, WorksheetAttempt } from "../services/StorageService";
+import { ScreenContainer, LoadingState, EmptyState, ErrorState } from "@/components/ui";
+import { colors, spacing } from "@/theme";
+import { useAppTheme } from "@/theme";
 
 export default function HistoryScreen() {
   const { currentUser, isLoading: authLoading } = useAuth();
-  const theme = useTheme();
+  const theme = useAppTheme();
   const router = useRouter();
 
   const [worksheetAttempts, setWorksheetAttempts] = useState<
@@ -96,71 +96,50 @@ export default function HistoryScreen() {
     }
   };
 
+  const navigateToProfile = () => router.push("/profile");
+  const navigateToWorksheet = () => router.push("/(tabs)");
+
   if (authLoading || loadingHistory) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centered}>
-          <ActivityIndicator animating={true} size="large" />
-          <Text style={styles.messageText}>Loading history...</Text>
-        </View>
-      </SafeAreaView>
+      <ScreenContainer noScroll>
+        <LoadingState message="Loading history..." />
+      </ScreenContainer>
     );
   }
 
   if (!currentUser) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centered}>
-          <Text variant="headlineSmall" style={styles.messageText}>
-            Worksheet History
-          </Text>
-          <Text style={styles.messageText}>
-            Please log in to view your saved worksheets.
-          </Text>
-          <Button
-            mode="contained"
-            onPress={() => router.push("/profile")}
-            style={{ marginTop: 20 }}
-          >
-            Go to Profile
-          </Button>
-        </View>
-      </SafeAreaView>
+      <ScreenContainer noScroll>
+        <EmptyState
+          emoji="🔒"
+          title="Please log in"
+          subtitle="Log in to view your saved worksheets"
+          actionLabel="Go to Profile"
+          onAction={navigateToProfile}
+        />
+      </ScreenContainer>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centered}>
-          <Text style={[styles.messageText, { color: theme.colors.error }]}>
-            {error}
-          </Text>
-          <Button onPress={fetchHistory}>Try Again</Button>
-        </View>
-      </SafeAreaView>
+      <ScreenContainer noScroll>
+        <ErrorState message={error} onRetry={fetchHistory} />
+      </ScreenContainer>
     );
   }
 
   if (worksheetAttempts.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centered}>
-          <Text variant="headlineSmall" style={styles.messageText}>
-            Worksheet History
-          </Text>
-          <Text style={styles.messageText}>
-            You haven't generated any worksheets yet.
-          </Text>
-          <Button
-            mode="contained"
-            onPress={() => router.push("/(tabs)")}
-            style={{ marginTop: 20 }}
-          >
-            Generate a Worksheet
-          </Button>
-        </View>
-      </SafeAreaView>
+      <ScreenContainer noScroll>
+        <EmptyState
+          emoji="📝"
+          title="No worksheets yet"
+          subtitle="Start by generating your first worksheet!"
+          actionLabel="Generate a Worksheet"
+          onAction={navigateToWorksheet}
+        />
+      </ScreenContainer>
     );
   }
 
@@ -190,7 +169,7 @@ export default function HistoryScreen() {
       <Card.Actions>
         <Button
           onPress={() => handleViewOrAttemptWorksheet(item)}
-          icon="play-circle-outline" // Changed icon for "attempt"
+          icon="play-circle-outline"
         >
           {item.status === "in-progress" || item.status === "paused"
             ? "Resume"
@@ -205,9 +184,7 @@ export default function HistoryScreen() {
   );
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <ScreenContainer noScroll>
       <Text variant="headlineMedium" style={styles.title}>
         Your Worksheet Attempts
       </Text>
@@ -216,36 +193,26 @@ export default function HistoryScreen() {
         renderItem={renderWorksheetItem}
         keyExtractor={(item) => item.id || Math.random().toString()}
         contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <Divider style={{ marginVertical: 8 }} />}
+        ItemSeparatorComponent={() => (
+          <Divider style={{ marginVertical: spacing.sm }} />
+        )}
       />
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  messageText: {
-    textAlign: "center",
-    marginBottom: 10,
-  },
   title: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
   },
   listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
   },
   card: {
-    marginVertical: 8,
+    marginVertical: spacing.sm,
+    backgroundColor: colors.surface,
   },
 });
