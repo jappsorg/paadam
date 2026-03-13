@@ -3,7 +3,7 @@ import { PaperProvider } from "react-native-paper";
 import { StatusBar } from "expo-status-bar";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import theme, { colors, fontSizes } from "@/theme";
+import theme, { colors, fontSizes, fontWeights } from "@/theme";
 import { AuthProvider } from "../context/AuthContext";
 import AppNavigator from "../components/navigation/AppNavigator";
 
@@ -12,18 +12,22 @@ export default function AppLayout() {
     <AuthProvider>
       <SafeAreaProvider>
         <PaperProvider theme={theme}>
-          <StatusBar style="auto" />
+          <StatusBar style="dark" />
           <AppNavigator>
             <Tabs
               screenOptions={{
-                tabBarActiveTintColor: colors.textPrimary,
-                tabBarInactiveTintColor: colors.textPlaceholder,
+                tabBarActiveTintColor: colors.coral400,
+                tabBarInactiveTintColor: colors.plum400,
                 tabBarLabelStyle: {
                   fontSize: fontSizes.xs,
+                  fontWeight: fontWeights.semibold,
                 },
                 tabBarStyle: {
-                  backgroundColor: colors.surface,
-                  borderTopColor: colors.backdrop,
+                  backgroundColor: colors.surfaceElevated,
+                  borderTopColor: colors.borderLight,
+                  borderTopWidth: 1,
+                  paddingTop: 4,
+                  height: 64,
                 },
               }}
             >
@@ -59,7 +63,6 @@ export default function AppLayout() {
               <Tabs.Screen
                 name="history"
                 options={{
-                  // href: null, // enable history
                   title: "History",
                   headerShown: false,
                   tabBarIcon: ({ color, size }) => (
@@ -72,7 +75,7 @@ export default function AppLayout() {
                 }}
               />
               <Tabs.Screen
-                name="profile" // New Profile Tab
+                name="profile"
                 options={{
                   title: "Profile",
                   headerShown: false,
@@ -88,7 +91,7 @@ export default function AppLayout() {
               <Tabs.Screen
                 name="attempt/[userWorksheetId]"
                 options={{
-                  href: null, // Hide from tab bar
+                  href: null,
                   headerShown: false,
                 }}
               />

@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.xxl,
     paddingVertical: spacing.md,
-    backgroundColor: colors.yellow100,
+    backgroundColor: colors.gold100,
     borderRadius: radii.md,
     marginTop: spacing.xs,
   },
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
   rewardText: {
     fontSize: fontSizes.md,
     fontWeight: fontWeights.semibold,
-    color: colors.slate700,
+    color: colors.plum700,
   },
   levelUpText: {
     fontSize: fontSizes.sm,
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
   explanation: {
     marginTop: spacing.sm,
     fontSize: fontSizes.md,
-    color: colors.slate800,
+    color: colors.plum800,
     lineHeight: 21,
   },
   resultActions: {

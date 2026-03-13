@@ -1,19 +1,19 @@
 import React, { useState } from "react";
 import { View, StyleSheet, Pressable, ScrollView } from "react-native";
 import { Text } from "react-native-paper";
-import { colors, spacing, fontSizes } from "@/theme";
+import { colors, spacing, radii, fontSizes, fontWeights, shadows } from "@/theme";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 const THEME_OPTIONS = [
-  { id: "dinosaurs", label: "Dinosaurs", emoji: "🦕" },
-  { id: "space", label: "Space", emoji: "🚀" },
-  { id: "cooking", label: "Cooking", emoji: "🍕" },
-  { id: "animals", label: "Animals", emoji: "🐾" },
-  { id: "sports", label: "Sports", emoji: "⚽" },
-  { id: "fantasy", label: "Fantasy", emoji: "🏰" },
-  { id: "art", label: "Art", emoji: "🎨" },
-  { id: "music", label: "Music", emoji: "🎵" },
-  { id: "ocean", label: "Ocean", emoji: "🌊" },
+  { id: "dinosaurs", label: "Dinosaurs", emoji: "\uD83E\uDD95" },
+  { id: "space", label: "Space", emoji: "\uD83D\uDE80" },
+  { id: "cooking", label: "Cooking", emoji: "\uD83C\uDF55" },
+  { id: "animals", label: "Animals", emoji: "\uD83D\uDC3E" },
+  { id: "sports", label: "Sports", emoji: "\u26BD" },
+  { id: "fantasy", label: "Fantasy", emoji: "\uD83C\uDFF0" },
+  { id: "art", label: "Art", emoji: "\uD83C\uDFA8" },
+  { id: "music", label: "Music", emoji: "\uD83C\uDFB5" },
+  { id: "ocean", label: "Ocean", emoji: "\uD83C\uDF0A" },
 ];
 
 const SUBJECT_OPTIONS = [
@@ -60,47 +60,59 @@ export function PreferencesSetup({ studentName, onComplete, onSkip }: Preference
         {selectedThemes.length === 0
           ? "Pick up to 3 favorites"
           : selectedThemes.length < 3
-            ? `${selectedThemes.length} of 3 picked — keep going!`
-            : "3 of 3 picked — looks great!"}
+            ? `${selectedThemes.length} of 3 picked \u2014 keep going!`
+            : "\uD83C\uDF89 3 of 3 picked \u2014 looks great!"}
       </Text>
 
       <View style={styles.grid}>
-        {THEME_OPTIONS.map((theme) => (
-          <Pressable
-            key={theme.id}
-            style={[styles.themeCard, selectedThemes.includes(theme.id) && styles.themeCardSelected]}
-            onPress={() => toggleTheme(theme.id)}
-          >
-            <Text style={styles.themeEmoji}>{theme.emoji}</Text>
-            <Text style={[styles.themeLabel, selectedThemes.includes(theme.id) && styles.themeLabelSelected]}>
-              {theme.label}
-            </Text>
-          </Pressable>
-        ))}
+        {THEME_OPTIONS.map((theme) => {
+          const isSelected = selectedThemes.includes(theme.id);
+          return (
+            <Pressable
+              key={theme.id}
+              style={[styles.themeCard, isSelected && styles.themeCardSelected]}
+              onPress={() => toggleTheme(theme.id)}
+            >
+              <Text style={styles.themeEmoji}>{theme.emoji}</Text>
+              <Text style={[styles.themeLabel, isSelected && styles.themeLabelSelected]}>
+                {theme.label}
+              </Text>
+              {isSelected && (
+                <View style={styles.checkBadge}>
+                  <Text style={styles.checkText}>{"\u2713"}</Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
       </View>
 
-      <Text style={[styles.title, { marginTop: spacing.xl }]}>
+      <Text style={[styles.title, { marginTop: spacing.xxl }]}>
         Any subjects they find tricky?
       </Text>
-      <Text style={styles.subtitle}>Optional — helps us personalize</Text>
+      <Text style={styles.subtitle}>Optional \u2014 helps us personalize</Text>
 
       <View style={styles.chipContainer}>
-        {SUBJECT_OPTIONS.map((subject) => (
-          <Pressable
-            key={subject.id}
-            style={[styles.chip, selectedSubjects.includes(subject.id) && styles.chipSelected]}
-            onPress={() => toggleSubject(subject.id)}
-          >
-            <Text style={[styles.chipText, selectedSubjects.includes(subject.id) && styles.chipTextSelected]}>
-              {subject.label}
-            </Text>
-          </Pressable>
-        ))}
+        {SUBJECT_OPTIONS.map((subject) => {
+          const isSelected = selectedSubjects.includes(subject.id);
+          return (
+            <Pressable
+              key={subject.id}
+              style={[styles.chip, isSelected && styles.chipSelected]}
+              onPress={() => toggleSubject(subject.id)}
+            >
+              <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                {subject.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <View style={styles.buttons}>
         <PrimaryButton
-          label={selectedThemes.length > 0 ? "Continue" : "Skip for now"}
+          title={selectedThemes.length > 0 ? "Continue" : "Skip for now"}
+          variant={selectedThemes.length > 0 ? "teal" : "coral"}
           onPress={() => {
             if (selectedThemes.length > 0) {
               onComplete({ favoriteThemes: selectedThemes, trickySubjects: selectedSubjects });
@@ -115,26 +127,96 @@ export function PreferencesSetup({ studentName, onComplete, onSkip }: Preference
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: spacing.lg },
-  title: { fontSize: fontSizes.xl, fontWeight: "700", color: colors.text, textAlign: "center" },
-  subtitle: { fontSize: fontSizes.md, color: colors.textSecondary, textAlign: "center", marginTop: spacing.xs, marginBottom: spacing.lg },
-  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: spacing.md },
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing.xl },
+  title: {
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.extrabold,
+    color: colors.textPrimary,
+    textAlign: "center",
+    letterSpacing: -0.2,
+  },
+  subtitle: {
+    fontSize: fontSizes.base,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginTop: spacing.xs,
+    marginBottom: spacing.xl,
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: spacing.md,
+  },
   themeCard: {
-    width: 100, height: 100, borderRadius: 16, backgroundColor: colors.surface,
-    justifyContent: "center", alignItems: "center", borderWidth: 2, borderColor: "transparent",
+    width: 100,
+    height: 100,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surfaceElevated,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "transparent",
+    ...shadows.sm,
   },
-  themeCardSelected: { borderColor: colors.primary, backgroundColor: colors.primaryContainer },
+  themeCardSelected: {
+    borderColor: colors.teal400,
+    backgroundColor: colors.teal50,
+    ...shadows.tealGlow,
+  },
   themeEmoji: { fontSize: 32, marginBottom: spacing.xs },
-  themeLabel: { fontSize: fontSizes.sm, color: colors.text },
-  themeLabelSelected: { color: colors.primary, fontWeight: "600" },
-  chipContainer: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: spacing.sm },
-  chip: {
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 20,
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.outline,
+  themeLabel: {
+    fontSize: fontSizes.sm,
+    color: colors.textPrimary,
+    fontWeight: fontWeights.semibold,
   },
-  chipSelected: { backgroundColor: colors.primaryContainer, borderColor: colors.primary },
-  chipText: { fontSize: fontSizes.sm, color: colors.text },
-  chipTextSelected: { color: colors.primary, fontWeight: "600" },
-  buttons: { marginTop: spacing.xl, alignItems: "center" },
+  themeLabelSelected: {
+    color: colors.teal700,
+    fontWeight: fontWeights.bold,
+  },
+  checkBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.teal400,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: fontWeights.bold,
+  },
+  chipContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: spacing.sm,
+  },
+  chip: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1.5,
+    borderColor: colors.borderLight,
+  },
+  chipSelected: {
+    backgroundColor: colors.coral50,
+    borderColor: colors.coral400,
+  },
+  chipText: {
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
+    fontWeight: fontWeights.semibold,
+  },
+  chipTextSelected: {
+    color: colors.coral500,
+    fontWeight: fontWeights.bold,
+  },
+  buttons: { marginTop: spacing.xxl, alignItems: "center" },
 });

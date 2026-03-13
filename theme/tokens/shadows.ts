@@ -11,7 +11,7 @@ const createShadow = (
   opacity: number,
   radius: number,
   offsetY: number,
-  color = "#000"
+  color = "#2D1B69"
 ): ShadowPreset =>
   Platform.select({
     ios: {
@@ -33,17 +33,27 @@ const createShadow = (
 
 export const shadows = {
   none: createShadow(0, 0, 0, 0),
-  sm: createShadow(2, 0.05, 4, 2),
-  md: createShadow(4, 0.1, 8, 4),
-  lg: createShadow(8, 0.15, 12, 6),
-  xl: createShadow(12, 0.2, 16, 8),
+  sm: createShadow(2, 0.06, 6, 2, "#2D1B69"),
+  md: createShadow(4, 0.08, 12, 4, "#2D1B69"),
+  lg: createShadow(8, 0.12, 20, 8, "#2D1B69"),
+  xl: createShadow(12, 0.16, 28, 12, "#2D1B69"),
 
-  // Colored shadows for buttons
-  successGlow: createShadow(4, 0.3, 8, 4, "#4CAF50"),
-  primaryGlow: createShadow(4, 0.3, 8, 4, "#4A90E2"),
+  // Colored glows for buttons and interactive elements
+  coralGlow: createShadow(6, 0.25, 16, 6, "#FF6B6B"),
+  tealGlow: createShadow(6, 0.25, 16, 6, "#4ECDC4"),
+  violetGlow: createShadow(6, 0.25, 16, 6, "#A78BFA"),
+  goldGlow: createShadow(6, 0.25, 16, 6, "#FBBF24"),
+  successGlow: createShadow(6, 0.25, 16, 6, "#10B981"),
 
-  // Top shadow for sticky footers (note: Android elevation doesn't support direction)
-  topMd: createShadow(8, 0.1, 8, -2),
+  // Card shadows — warm tinted
+  card: createShadow(4, 0.08, 16, 6, "#2D1B69"),
+  cardHover: createShadow(8, 0.12, 24, 10, "#2D1B69"),
+
+  // Top shadow for sticky footers
+  topMd: createShadow(8, 0.08, 12, -3, "#2D1B69"),
+
+  // Legacy compat
+  primaryGlow: createShadow(6, 0.25, 16, 6, "#FF6B6B"),
 };
 
 export type ShadowToken = keyof typeof shadows;

@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
   message: {
     fontSize: fontSizes.md,
     lineHeight: 20,
-    color: colors.slate700,
+    color: colors.plum700,
   },
 });
 

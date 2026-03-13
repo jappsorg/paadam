@@ -4,24 +4,24 @@ import { Text } from "react-native-paper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { CharacterService } from "@/services/CharacterService";
-import { colors, spacing, fontSizes } from "@/theme";
+import { colors, spacing, radii, fontSizes, fontWeights, shadows } from "@/theme";
 
-const THEME_VISUALS: Record<string, { emoji: string; color: string }> = {
-  cooking: { emoji: "🍕", color: "#FF6B6B" },
-  dinosaurs: { emoji: "🦕", color: "#4ECDC4" },
-  space: { emoji: "🚀", color: "#6366F1" },
-  animals: { emoji: "🐾", color: "#F59E0B" },
-  sports: { emoji: "⚽", color: "#10B981" },
-  fantasy: { emoji: "🏰", color: "#8B5CF6" },
-  art: { emoji: "🎨", color: "#EC4899" },
-  ocean: { emoji: "🌊", color: "#06B6D4" },
-  music: { emoji: "🎵", color: "#F97316" },
+const THEME_VISUALS: Record<string, { emoji: string; color: string; light: string }> = {
+  cooking: { emoji: "\uD83C\uDF55", color: "#FF6B6B", light: colors.coral50 },
+  dinosaurs: { emoji: "\uD83E\uDD95", color: "#4ECDC4", light: colors.teal50 },
+  space: { emoji: "\uD83D\uDE80", color: "#8B5CF6", light: colors.violet50 },
+  animals: { emoji: "\uD83D\uDC3E", color: "#F59E0B", light: colors.gold50 },
+  sports: { emoji: "\u26BD", color: "#10B981", light: colors.green50 },
+  fantasy: { emoji: "\uD83C\uDFF0", color: "#8B5CF6", light: colors.violet50 },
+  art: { emoji: "\uD83C\uDFA8", color: "#EC4899", light: colors.coral50 },
+  ocean: { emoji: "\uD83C\uDF0A", color: "#06B6D4", light: colors.teal50 },
+  music: { emoji: "\uD83C\uDFB5", color: "#F97316", light: colors.orange50 },
 };
 
 export default function ThemePickerScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
-    choices: string; // comma-separated theme IDs
+    choices: string;
     studentId: string;
     character: string;
   }>();
@@ -51,15 +51,21 @@ export default function ThemePickerScreen() {
 
         <View style={styles.cards}>
           {choices.map((theme) => {
-            const visual = THEME_VISUALS[theme] || { emoji: "🌟", color: "#6366F1" };
+            const visual = THEME_VISUALS[theme] || { emoji: "\uD83C\uDF1F", color: colors.violet400, light: colors.violet50 };
             return (
               <Pressable
                 key={theme}
-                style={[styles.card, { borderColor: visual.color }]}
+                style={({ pressed }) => [
+                  styles.card,
+                  { borderColor: visual.color, backgroundColor: visual.light },
+                  pressed && styles.cardPressed,
+                ]}
                 onPress={() => handleSelect(theme)}
               >
-                <Text style={styles.cardEmoji}>{visual.emoji}</Text>
-                <Text style={styles.cardTitle}>
+                <View style={[styles.emojiCircle, { backgroundColor: visual.color + "20" }]}>
+                  <Text style={styles.cardEmoji}>{visual.emoji}</Text>
+                </View>
+                <Text style={[styles.cardTitle, { color: visual.color }]}>
                   {theme.charAt(0).toUpperCase() + theme.slice(1)} Adventure
                 </Text>
                 <Text style={styles.cardSubtitle}>Tap to start!</Text>
@@ -73,15 +79,50 @@ export default function ThemePickerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: spacing.lg, justifyContent: "center" },
-  title: { fontSize: fontSizes.xxl, fontWeight: "800", textAlign: "center", color: colors.text },
-  subtitle: { fontSize: fontSizes.md, color: colors.textSecondary, textAlign: "center", marginTop: spacing.sm, marginBottom: spacing.xl },
+  container: { flex: 1, padding: spacing.xl, justifyContent: "center" },
+  title: {
+    fontSize: fontSizes.xxxl,
+    fontWeight: fontWeights.extrabold,
+    textAlign: "center",
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontSize: fontSizes.base,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginTop: spacing.sm,
+    marginBottom: spacing.xxl,
+  },
   cards: { gap: spacing.lg },
   card: {
-    backgroundColor: colors.surface, borderRadius: 20, padding: spacing.xl,
-    alignItems: "center", borderWidth: 3, elevation: 2,
+    borderRadius: radii.xxl,
+    padding: spacing.xl,
+    alignItems: "center",
+    borderWidth: 3,
+    ...shadows.card,
   },
-  cardEmoji: { fontSize: 48, marginBottom: spacing.sm },
-  cardTitle: { fontSize: fontSizes.lg, fontWeight: "700", color: colors.text },
-  cardSubtitle: { fontSize: fontSizes.sm, color: colors.textSecondary, marginTop: spacing.xs },
+  cardPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.97 }],
+  },
+  emojiCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.md,
+  },
+  cardEmoji: { fontSize: 40 },
+  cardTitle: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
+  },
+  cardSubtitle: {
+    fontSize: fontSizes.sm,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
+    fontWeight: fontWeights.semibold,
+  },
 });

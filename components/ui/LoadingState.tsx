@@ -9,7 +9,7 @@ interface LoadingStateProps {
 }
 
 export function LoadingState({
-  message = "Loading...",
+  message = "Hang on a sec...",
   emoji = "\u{1F914}",
 }: LoadingStateProps) {
   return (

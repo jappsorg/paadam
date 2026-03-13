@@ -10,7 +10,7 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({
-  message = "Something went wrong",
+  message = "Uh oh! Something got tangled up.",
   onRetry,
 }: ErrorStateProps) {
   return (
@@ -21,7 +21,7 @@ export function ErrorState({
       </Text>
       {onRetry && (
         <PrimaryButton
-          title="Try Again"
+          title="Try again!"
           onPress={onRetry}
           style={styles.button}
         />

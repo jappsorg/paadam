@@ -1,8 +1,8 @@
 import React from "react";
-import { StyleSheet, ScrollView, View, TouchableOpacity, Alert } from "react-native";
+import { StyleSheet, ScrollView, View, TouchableOpacity, Alert, Pressable } from "react-native";
 import { Text } from "react-native-paper";
 import { ScreenContainer } from "@/components/ui";
-import { colors, spacing, radii } from "@/theme";
+import { colors, spacing, radii, shadows, fontSizes, fontWeights } from "@/theme";
 import { WorksheetCard, worksheetTemplates } from "../components/WorksheetCard";
 import { useAuth } from "../context/AuthContext";
 import { PlayerStats } from "../components/PlayerStats";
@@ -18,12 +18,12 @@ export default function HomeScreen() {
 
   const handleSignOut = () => {
     Alert.alert(
-      "Sign Out",
-      "Are you sure you want to sign out?",
+      "Leaving already?",
+      "Are you sure you want to go?",
       [
-        { text: "No, stay!", style: "cancel" },
+        { text: "Nope, stay!", style: "cancel" },
         {
-          text: "Yes, sign out",
+          text: "Yep, bye!",
           style: "destructive",
           onPress: async () => {
             try {
@@ -39,54 +39,55 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer>
+      {/* Hero Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text variant="headlineMedium" style={styles.title}>
-            Welcome{selectedStudent ? `, ${selectedStudent.name}` : ""}! 👋
+          <Text style={styles.greeting}>
+            {selectedStudent ? `Hey, ${selectedStudent.name}!` : "Welcome!"} {"\u{1F44B}"}
           </Text>
           {selectedStudent && (
-            <Text variant="bodyMedium" style={styles.subtitle}>
-              Level {selectedStudent.level} • {selectedStudent.currentStreak}{" "}
-              day streak 🔥
-            </Text>
+            <View style={styles.streakBadge}>
+              <Text style={styles.streakText}>
+                {"\uD83D\uDD25"} {selectedStudent.currentStreak} day streak
+              </Text>
+            </View>
           )}
         </View>
         <TouchableOpacity
           onPress={handleSignOut}
           style={styles.signOutButton}
         >
-          <Text style={styles.signOutText}>Sign Out</Text>
+          <Text style={styles.signOutText}>{"\u{1F6AA}"}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Student Selector if multiple children */}
+      {/* Student Selector */}
       {studentProfiles.length > 1 && (
         <View style={styles.studentSelector}>
-          <Text variant="titleMedium" style={styles.selectorTitle}>
-            Select Student:
-          </Text>
+          <Text style={styles.selectorTitle}>Switch learner:</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {studentProfiles.map((profile) => (
-              <TouchableOpacity
-                key={profile.id}
-                style={[
-                  styles.studentChip,
-                  selectedStudent?.id === profile.id &&
-                    styles.studentChipSelected,
-                ]}
-                onPress={() => setSelectedStudent(profile)}
-              >
-                <Text
+            {studentProfiles.map((profile) => {
+              const isSelected = selectedStudent?.id === profile.id;
+              return (
+                <Pressable
+                  key={profile.id}
                   style={[
-                    styles.studentChipText,
-                    selectedStudent?.id === profile.id &&
-                      styles.studentChipTextSelected,
+                    styles.studentChip,
+                    isSelected && styles.studentChipSelected,
                   ]}
+                  onPress={() => setSelectedStudent(profile)}
                 >
-                  {profile.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.studentChipText,
+                      isSelected && styles.studentChipTextSelected,
+                    ]}
+                  >
+                    {profile.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </ScrollView>
         </View>
       )}
@@ -94,11 +95,10 @@ export default function HomeScreen() {
       {/* Player Stats */}
       {selectedStudent && <PlayerStats student={selectedStudent} />}
 
-      {/* Worksheets */}
+      {/* Worksheet Section */}
       <View style={styles.worksheetSection}>
-        <Text variant="titleLarge" style={styles.sectionTitle}>
-          What do you want to practice?
-        </Text>
+        <Text style={styles.sectionTitle}>What shall we explore?</Text>
+        <Text style={styles.sectionSubtitle}>Pick an adventure below</Text>
         {worksheetTemplates.map((worksheet) => (
           <WorksheetCard key={worksheet.id} worksheet={worksheet} />
         ))}
@@ -111,64 +111,94 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    padding: spacing.lg,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.background,
+    alignItems: "center",
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.md,
   },
   headerLeft: {
     flex: 1,
+    gap: spacing.sm,
   },
-  title: {
-    marginBottom: spacing.xs,
+  greeting: {
+    fontSize: fontSizes.xxxl,
+    fontWeight: fontWeights.extrabold,
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
   },
-  subtitle: {
-    opacity: 0.7,
+  streakBadge: {
+    backgroundColor: colors.orange50,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.pill,
+    alignSelf: "flex-start",
+  },
+  streakText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.orange600,
   },
   signOutButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    backgroundColor: colors.borderLight,
-    borderRadius: radii.sm,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.sand100,
+    justifyContent: "center",
+    alignItems: "center",
   },
   signOutText: {
-    fontSize: 14,
-    color: colors.unselectedText,
-    fontWeight: "600",
+    fontSize: 20,
   },
   studentSelector: {
-    padding: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
-    backgroundColor: colors.background,
+    gap: spacing.sm,
   },
   selectorTitle: {
-    marginBottom: spacing.md,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.textTertiary,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   studentChip: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 10,
-    backgroundColor: colors.surface,
-    borderRadius: radii.xl,
-    marginRight: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm + 2,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.pill,
+    marginRight: spacing.sm,
     borderWidth: 2,
-    borderColor: colors.unselectedBorder,
+    borderColor: colors.borderLight,
+    ...shadows.sm,
   },
   studentChipSelected: {
-    backgroundColor: colors.selected,
-    borderColor: colors.selected,
+    backgroundColor: colors.coral400,
+    borderColor: colors.coral400,
+    ...shadows.coralGlow,
   },
   studentChipText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.unselectedText,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.semibold,
+    color: colors.textSecondary,
   },
   studentChipTextSelected: {
-    color: colors.selectedText,
+    color: colors.textOnPrimary,
   },
   worksheetSection: {
-    padding: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xxl,
   },
   sectionTitle: {
-    marginBottom: spacing.md,
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.extrabold,
+    color: colors.textPrimary,
+    letterSpacing: -0.2,
+  },
+  sectionSubtitle: {
+    fontSize: fontSizes.md,
+    color: colors.textTertiary,
+    marginBottom: spacing.lg,
+    marginTop: spacing.xs,
   },
 });

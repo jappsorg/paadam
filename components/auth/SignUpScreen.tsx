@@ -18,7 +18,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import {
-  SectionHeader,
   AppTextInput,
   PrimaryButton,
   SecondaryButton,
@@ -29,6 +28,7 @@ import {
   radii,
   fontSizes,
   fontWeights,
+  shadows,
 } from "@/theme";
 
 interface SignUpScreenProps {
@@ -51,24 +51,12 @@ export default function SignUpScreen({
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const validateForm = (): string | null => {
-    if (!displayName.trim()) {
-      return "Please enter your name";
-    }
-    if (!email.trim()) {
-      return "Please enter your email";
-    }
-    if (!email.includes("@")) {
-      return "Please enter a valid email address";
-    }
-    if (password.length < 6) {
-      return "Password must be at least 6 characters";
-    }
-    if (password !== confirmPassword) {
-      return "Passwords do not match";
-    }
-    if (!agreedToTerms) {
-      return "Please agree to the Terms of Service and Privacy Policy";
-    }
+    if (!displayName.trim()) return "Please enter your name";
+    if (!email.trim()) return "Please enter your email";
+    if (!email.includes("@")) return "Please enter a valid email address";
+    if (password.length < 6) return "Password must be at least 6 characters";
+    if (password !== confirmPassword) return "Passwords do not match";
+    if (!agreedToTerms) return "Please agree to the Terms of Service and Privacy Policy";
     return null;
   };
 
@@ -99,13 +87,9 @@ export default function SignUpScreen({
 
   const handleGoogleSignUp = async () => {
     if (!agreedToTerms) {
-      Alert.alert(
-        "Terms Required",
-        "Please agree to the Terms of Service and Privacy Policy",
-      );
+      Alert.alert("Terms Required", "Please agree to the Terms of Service and Privacy Policy");
       return;
     }
-
     try {
       await signInWithGoogle();
       onSignUpSuccess();
@@ -119,6 +103,9 @@ export default function SignUpScreen({
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.bgCircle1} />
+      <View style={styles.bgCircle2} />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
@@ -128,109 +115,110 @@ export default function SignUpScreen({
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <SectionHeader
-            emoji="📚"
-            title="Create Account"
-            subtitle="Start your child's learning journey"
-          />
+          {/* Hero */}
+          <View style={styles.heroSection}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoEmoji}>{"\uD83C\uDF1F"}</Text>
+            </View>
+            <Text style={styles.heroTitle}>Join the Adventure</Text>
+            <Text style={styles.heroSubtitle}>Create your family's learning space</Text>
+          </View>
 
-          {/* Form */}
-          <View style={styles.form}>
-            <AppTextInput
-              label="Your Name"
-              placeholder="Enter your full name"
-              value={displayName}
-              onChangeText={setDisplayName}
-              autoCapitalize="words"
-              autoCorrect={false}
-              textContentType="name"
-              editable={!isLoading}
-            />
+          {/* Form Card */}
+          <View style={styles.formCard}>
+            <View style={styles.form}>
+              <AppTextInput
+                label="Your Name"
+                placeholder="Enter your full name"
+                value={displayName}
+                onChangeText={setDisplayName}
+                autoCapitalize="words"
+                autoCorrect={false}
+                textContentType="name"
+                editable={!isLoading}
+              />
 
-            <AppTextInput
-              label="Email"
-              placeholder="your@email.com"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              textContentType="emailAddress"
-              editable={!isLoading}
-            />
+              <AppTextInput
+                label="Email"
+                placeholder="your@email.com"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                editable={!isLoading}
+              />
 
-            <AppTextInput
-              label="Password"
-              placeholder="At least 6 characters"
-              isPassword
-              value={password}
-              onChangeText={setPassword}
-              textContentType="newPassword"
-              editable={!isLoading}
-            />
+              <AppTextInput
+                label="Password"
+                placeholder="At least 6 characters"
+                isPassword
+                value={password}
+                onChangeText={setPassword}
+                textContentType="newPassword"
+                editable={!isLoading}
+              />
 
-            <AppTextInput
-              label="Confirm Password"
-              placeholder="Re-enter your password"
-              isPassword
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              textContentType="newPassword"
-              editable={!isLoading}
-            />
+              <AppTextInput
+                label="Confirm Password"
+                placeholder="Re-enter your password"
+                isPassword
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                textContentType="newPassword"
+                editable={!isLoading}
+              />
 
-            {/* Terms Agreement */}
-            <TouchableOpacity
-              style={styles.checkboxContainer}
-              onPress={() => setAgreedToTerms(!agreedToTerms)}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  agreedToTerms && styles.checkboxChecked,
-                ]}
+              {/* Terms */}
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setAgreedToTerms(!agreedToTerms)}
+                activeOpacity={0.7}
               >
-                {agreedToTerms && <Text style={styles.checkmark}>✓</Text>}
-              </View>
-              <Text style={styles.checkboxLabel}>
-                I agree to the <Text style={styles.link}>Terms of Service</Text>{" "}
-                and <Text style={styles.link}>Privacy Policy</Text>
-              </Text>
-            </TouchableOpacity>
-
-            {/* Sign Up Button */}
-            <PrimaryButton
-              title="Create Account"
-              onPress={handleEmailSignUp}
-              loading={isLoading}
-              disabled={!agreedToTerms}
-              style={styles.signUpButton}
-            />
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Google Sign Up */}
-            <SecondaryButton
-              icon="🔵"
-              title="Continue with Google"
-              onPress={handleGoogleSignUp}
-              loading={isGoogleSignInLoading}
-            />
-
-            {/* Sign In Link */}
-            <View style={styles.signInContainer}>
-              <Text style={styles.signInText}>Already have an account? </Text>
-              <TouchableOpacity onPress={onNavigateToSignIn}>
-                <Text style={styles.signInLink}>Sign In</Text>
+                <View
+                  style={[
+                    styles.checkbox,
+                    agreedToTerms && styles.checkboxChecked,
+                  ]}
+                >
+                  {agreedToTerms && <Text style={styles.checkmark}>{"\u2713"}</Text>}
+                </View>
+                <Text style={styles.checkboxLabel}>
+                  I agree to the <Text style={styles.link}>Terms of Service</Text>{" "}
+                  and <Text style={styles.link}>Privacy Policy</Text>
+                </Text>
               </TouchableOpacity>
+
+              <PrimaryButton
+                title="Create Account"
+                onPress={handleEmailSignUp}
+                loading={isLoading}
+                disabled={!agreedToTerms}
+                variant="teal"
+              />
+
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <SecondaryButton
+                icon={"\uD83D\uDD35"}
+                title="Continue with Google"
+                onPress={handleGoogleSignUp}
+                loading={isGoogleSignInLoading}
+              />
             </View>
+          </View>
+
+          {/* Sign In Link */}
+          <View style={styles.signInContainer}>
+            <Text style={styles.signInText}>Already have an account? </Text>
+            <TouchableOpacity onPress={onNavigateToSignIn}>
+              <Text style={styles.signInLink}>Sign In</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -242,31 +230,77 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    overflow: "hidden",
   },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
+  keyboardView: { flex: 1 },
+  scrollView: { flex: 1 },
   content: {
-    padding: spacing.xxl,
-    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.xxl,
     paddingBottom: spacing.xxxxl,
   },
-  form: {
-    gap: spacing.xl,
+  bgCircle1: {
+    position: "absolute",
+    top: -60,
+    left: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: colors.teal50,
+    opacity: 0.5,
   },
+  bgCircle2: {
+    position: "absolute",
+    bottom: 60,
+    right: -60,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: colors.violet50,
+    opacity: 0.4,
+  },
+  heroSection: {
+    alignItems: "center",
+    paddingTop: spacing.xxxl,
+    paddingBottom: spacing.xxl,
+  },
+  logoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.teal400,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.lg,
+    ...shadows.tealGlow,
+  },
+  logoEmoji: { fontSize: 40 },
+  heroTitle: {
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.extrabold,
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
+  },
+  heroSubtitle: {
+    fontSize: fontSizes.base,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
+  },
+  formCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.xxl,
+    padding: spacing.xxl,
+    ...shadows.lg,
+  },
+  form: { gap: spacing.lg },
   checkboxContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: spacing.md,
-    marginTop: spacing.xs,
   },
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: radii.xs + 2,
+    borderRadius: radii.xs,
     borderWidth: 2,
     borderColor: colors.border,
     backgroundColor: colors.surface,
@@ -275,8 +309,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: colors.selected,
-    borderColor: colors.selected,
+    backgroundColor: colors.teal400,
+    borderColor: colors.teal400,
   },
   checkmark: {
     color: colors.textOnPrimary,
@@ -286,26 +320,19 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     flex: 1,
     fontSize: fontSizes.md,
-    color: colors.unselectedText,
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   link: {
-    color: colors.selected,
+    color: colors.teal500,
     fontWeight: fontWeights.semibold,
-  },
-  signUpButton: {
-    marginTop: spacing.sm,
   },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: spacing.sm,
+    marginVertical: spacing.xs,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.borderLight },
   dividerText: {
     color: colors.textDisabled,
     paddingHorizontal: spacing.lg,
@@ -314,7 +341,7 @@ const styles = StyleSheet.create({
   signInContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: spacing.lg,
+    marginTop: spacing.xxl,
   },
   signInText: {
     fontSize: fontSizes.base,
@@ -322,7 +349,7 @@ const styles = StyleSheet.create({
   },
   signInLink: {
     fontSize: fontSizes.base,
-    color: colors.selected,
+    color: colors.teal500,
     fontWeight: fontWeights.bold,
   },
 });

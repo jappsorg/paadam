@@ -7,18 +7,20 @@ export * from "./tokens";
 
 const theme = {
   ...DefaultTheme,
-  roundness: 8,
+  roundness: 14,
   colors: {
     ...DefaultTheme.colors,
     primary: colors.primary,
     secondary: colors.secondary,
-    tertiary: colors.success,
-    secondaryContainer: colors.secondary,
+    tertiary: colors.accent,
+    secondaryContainer: colors.secondaryLight,
     background: colors.background,
     surface: colors.surface,
+    surfaceVariant: colors.backdrop,
     error: colors.error,
     onPrimary: colors.textOnPrimary,
     onSurface: colors.textPrimary,
+    onSurfaceVariant: colors.textSecondary,
     outline: colors.border,
     // Compat with old theme references
     text: colors.textPrimary,

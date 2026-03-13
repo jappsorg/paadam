@@ -1,6 +1,6 @@
 // theme/tokens/spacing.ts
 
-// ─── Spacing Scale (4px base) ───
+// ─── Spacing Scale (4px base, slightly more generous) ───
 export const spacing = {
   xxs: 2,
   xs: 4,
@@ -13,14 +13,15 @@ export const spacing = {
   xxxxl: 40,
 } as const;
 
-// ─── Border Radius ───
+// ─── Border Radius (rounder, more playful) ───
 export const radii = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
+  xs: 6,
+  sm: 10,
+  md: 14,
+  lg: 18,
+  xl: 22,
+  xxl: 28,
+  pill: 50,
   full: 9999,
 } as const;
 
@@ -29,7 +30,7 @@ export const sizes = {
   // Avatars
   avatarSm: 40,
   avatarMd: 56,
-  avatarLg: 64,
+  avatarLg: 68,
   avatarXl: 140,
 
   // Icons
@@ -38,14 +39,14 @@ export const sizes = {
   iconLg: 24,
 
   // Buttons
-  buttonHeight: 52,
-  buttonHeightSm: 40,
+  buttonHeight: 56,
+  buttonHeightSm: 44,
 
   // Inputs
-  inputHeight: 52,
+  inputHeight: 56,
 
   // Tab bar
-  tabBarHeight: 60,
+  tabBarHeight: 64,
 
   // Character emoji
   emojiSm: 16,
@@ -55,7 +56,7 @@ export const sizes = {
   emojiXxl: 80,
 
   // Progress bars
-  progressBarHeight: 12,
+  progressBarHeight: 14,
 } as const;
 
 export type SpacingToken = keyof typeof spacing;

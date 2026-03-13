@@ -10,7 +10,7 @@ export const fontSizes = {
   xl: 20,
   xxl: 24,
   xxxl: 28,
-  display: 32,
+  display: 34,
   hero: 48,
 } as const;
 
@@ -20,6 +20,7 @@ export const fontWeights = {
   semibold: "600" as TextStyle["fontWeight"],
   bold: "700" as TextStyle["fontWeight"],
   extrabold: "800" as TextStyle["fontWeight"],
+  black: "900" as TextStyle["fontWeight"],
 };
 
 export const lineHeights = {
@@ -28,7 +29,8 @@ export const lineHeights = {
   relaxed: 22,
   loose: 24,
   paragraph: 28,
-  heading: 32,
+  heading: 34,
+  display: 42,
 } as const;
 
 // ─── Text Presets ───
@@ -36,20 +38,23 @@ export const textPresets = {
   // Display / Hero
   hero: {
     fontSize: fontSizes.hero,
-    fontWeight: fontWeights.bold,
+    fontWeight: fontWeights.black,
     lineHeight: 56,
+    letterSpacing: -1,
   },
   display: {
     fontSize: fontSizes.display,
-    fontWeight: fontWeights.bold,
-    lineHeight: 40,
+    fontWeight: fontWeights.extrabold,
+    lineHeight: lineHeights.display,
+    letterSpacing: -0.5,
   },
 
   // Headings
   h1: {
     fontSize: fontSizes.xxxl,
-    fontWeight: fontWeights.bold,
+    fontWeight: fontWeights.extrabold,
     lineHeight: 36,
+    letterSpacing: -0.3,
   },
   h2: {
     fontSize: fontSizes.xxl,
@@ -58,7 +63,7 @@ export const textPresets = {
   },
   h3: {
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
+    fontWeight: fontWeights.bold,
     lineHeight: lineHeights.loose,
   },
 
@@ -97,6 +102,7 @@ export const textPresets = {
   button: {
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.bold,
+    letterSpacing: 0.3,
   },
   buttonSmall: {
     fontSize: fontSizes.base,

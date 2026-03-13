@@ -111,7 +111,7 @@ export default function WorksheetGeneratorScreen() {
         console.log("User not logged in. Worksheet not saved to an account.");
       }
     } catch (err) {
-      setError("Failed to generate worksheet. Please try again.");
+      setError("Oops! Something got mixed up. Let\u2019s try again!");
       console.error("Worksheet generation error:", err);
     } finally {
       setLoading(false);
@@ -297,79 +297,112 @@ export default function WorksheetGeneratorScreen() {
   }, [config.subject, config.difficulty, selectedStudent]);
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView style={styles.container}>
         {/* Adventure Mode Toggle */}
         <View style={adventureStyles.modeToggle}>
           <Pressable
             style={[adventureStyles.modeButton, !adventureMode && adventureStyles.modeButtonActive]}
-            onPress={() => setAdventureMode(false)}
+            onPress={() => { setAdventureMode(false); setError(null); }}
           >
             <Text style={[adventureStyles.modeButtonText, !adventureMode && adventureStyles.modeButtonTextActive]}>
-              Build My Own
+              {"\u{1F527}"} Build My Own
             </Text>
           </Pressable>
           <Pressable
             style={[adventureStyles.modeButton, adventureMode && adventureStyles.modeButtonActive]}
-            onPress={() => setAdventureMode(true)}
+            onPress={() => { setAdventureMode(true); setError(null); }}
           >
             <Text style={[adventureStyles.modeButtonText, adventureMode && adventureStyles.modeButtonTextActive]}>
-              Start Adventure!
+              {"\u{1F680}"} Adventure!
             </Text>
           </Pressable>
         </View>
 
         {adventureMode ? (
-          <Card style={styles.card}>
-            <Card.Content>
-              {/* Arc Progress */}
-              {arcProgress && (
-                <View style={adventureStyles.arcProgress}>
-                  <Text style={adventureStyles.arcTitle}>{arcProgress.title}</Text>
-                  <View style={adventureStyles.arcProgressBar}>
-                    <View style={[adventureStyles.arcProgressFill, { width: `${(arcProgress.current / arcProgress.total) * 100}%` }]} />
-                  </View>
-                  <Text style={adventureStyles.arcProgressText}>
-                    Step {arcProgress.current} of {arcProgress.total}
-                  </Text>
+          <View style={adventureStyles.adventureCard}>
+            {/* Character scene */}
+            <View style={adventureStyles.characterScene}>
+              <View style={adventureStyles.starsRow}>
+                <Text style={adventureStyles.star}>{"\u2728"}</Text>
+                <Text style={[adventureStyles.star, { fontSize: 20 }]}>{"\u2B50"}</Text>
+                <Text style={adventureStyles.star}>{"\u2728"}</Text>
+              </View>
+              <View style={adventureStyles.characterCircle}>
+                <Text style={adventureStyles.characterEmoji}>
+                  {CHARACTER_EMOJIS[selectedStudent?.selectedCharacterId || "ada"] || "\u{1F989}"}
+                </Text>
+              </View>
+              <Text style={adventureStyles.adventureTitle}>
+                {arcProgress ? arcProgress.title : "Ready for an Adventure?"}
+              </Text>
+              <Text style={adventureStyles.adventureSubtitle}>
+                {arcProgress
+                  ? `You're on step ${arcProgress.current} of ${arcProgress.total}!`
+                  : "Your buddy will pick the perfect challenge for you!"}
+              </Text>
+            </View>
+
+            {/* Arc Progress */}
+            {arcProgress && (
+              <View style={adventureStyles.arcProgress}>
+                <View style={adventureStyles.arcProgressBar}>
+                  <View style={[adventureStyles.arcProgressFill, { width: `${(arcProgress.current / arcProgress.total) * 100}%` }]} />
                 </View>
-              )}
-
-              {/* Narrative Intro */}
-              {adaptiveResult && (
-                <View style={adventureStyles.narrativeIntro}>
-                  <Text style={adventureStyles.narrativeCharacter}>
-                    {adaptiveResult.worksheet.characterDialogue.greeting}
-                  </Text>
-                  <Text style={adventureStyles.narrativeText}>
-                    {adaptiveResult.worksheet.narrativeIntro}
-                  </Text>
+                <View style={adventureStyles.arcDots}>
+                  {Array.from({ length: arcProgress.total }, (_, i) => (
+                    <View key={i} style={[adventureStyles.arcDot, i < arcProgress.current && adventureStyles.arcDotComplete]} />
+                  ))}
                 </View>
-              )}
+              </View>
+            )}
 
-              {error && <Text style={styles.error}>{error}</Text>}
+            {/* Narrative Intro */}
+            {adaptiveResult && (
+              <View style={adventureStyles.narrativeIntro}>
+                <Text style={adventureStyles.narrativeCharacter}>
+                  {adaptiveResult.worksheet.characterDialogue.greeting}
+                </Text>
+                <Text style={adventureStyles.narrativeText}>
+                  {adaptiveResult.worksheet.narrativeIntro}
+                </Text>
+              </View>
+            )}
 
-              <Button
-                mode="contained"
-                onPress={handleAdventureGenerate}
-                loading={loading}
-                disabled={loading}
-                style={styles.generateButton}
+            {error && (
+              <View style={adventureStyles.errorBubble}>
+                <Text style={adventureStyles.errorEmoji}>{"\uD83D\uDE05"}</Text>
+                <Text style={adventureStyles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [
+                adventureStyles.goButton,
+                pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
+                loading && { opacity: 0.7 },
+              ]}
+              onPress={handleAdventureGenerate}
+              disabled={loading}
+            >
+              <Text style={adventureStyles.goButtonText}>
+                {loading ? "Getting ready..." : arcProgress ? "Keep Going! \u{1F680}" : "Let's Go! \u{1F680}"}
+              </Text>
+            </Pressable>
+
+            {/* Pivot button — visible, kid-friendly */}
+            {arcProgress && (
+              <Pressable
+                style={({ pressed }) => [
+                  adventureStyles.switchButton,
+                  pressed && { opacity: 0.8 },
+                ]}
+                onPress={handlePivot}
               >
-                {arcProgress ? "Continue Adventure!" : "Start My Adventure!"}
-              </Button>
-
-              {/* Pivot button */}
-              {arcProgress && (
-                <Pressable
-                  style={adventureStyles.switchButton}
-                  onPress={handlePivot}
-                >
-                  <Text style={adventureStyles.switchButtonText}>🔄 I want a different adventure!</Text>
-                </Pressable>
-              )}
-            </Card.Content>
-          </Card>
+                <Text style={adventureStyles.switchButtonText}>{"\uD83D\uDD04"} I want something different!</Text>
+              </Pressable>
+            )}
+          </View>
         ) : (
         <Card style={styles.card}>
           <Card.Title
@@ -390,7 +423,7 @@ export default function WorksheetGeneratorScreen() {
             ) : (
             <>
             <View style={styles.configItem}>
-              <Text variant="titleMedium">My Grade</Text>
+              <Text variant="titleMedium">What grade are you in?</Text>
               <View style={styles.buttonGroup} key={config.grade}>
                 {WORKSHEET_GRADE_OPTIONS.map((grade) => (
                   <Button
@@ -414,7 +447,7 @@ export default function WorksheetGeneratorScreen() {
               type === "word-problem" ||
               type === "puzzle") && (
               <View style={styles.configItem}>
-                <Text variant="titleMedium">Subject</Text>
+                <Text variant="titleMedium">What do you want to practice?</Text>
                 <View style={styles.buttonGroup} key={config.subject}>
                   {MATH_SUBJECT_OPTIONS.map((subject) => (
                     <Button
@@ -436,7 +469,7 @@ export default function WorksheetGeneratorScreen() {
             )}
 
             <View style={styles.configItem}>
-              <Text variant="titleMedium">Difficulty</Text>
+              <Text variant="titleMedium">How tricky should it be?</Text>
               <SegmentedButtons
                 value={config.difficulty}
                 onValueChange={(difficulty) =>
@@ -467,7 +500,7 @@ export default function WorksheetGeneratorScreen() {
             </View>
 
             <View style={styles.configItem}>
-              <Text variant="titleMedium">How many questions?</Text>
+              <Text variant="titleMedium">How many problems?</Text>
               <SegmentedButtons
                 value={config.questionsCount.toString()}
                 onValueChange={(value) =>
@@ -481,7 +514,7 @@ export default function WorksheetGeneratorScreen() {
             </View>
 
             <View style={styles.configItem}>
-              <Text variant="titleMedium">Include Answers</Text>
+              <Text variant="titleMedium">Show answers on the sheet?</Text>
               <Switch
                 value={config.includeAnswers}
                 onValueChange={(includeAnswers) =>
@@ -503,7 +536,7 @@ export default function WorksheetGeneratorScreen() {
               disabled={loading}
               style={styles.generateButton}
             >
-              Make My Worksheet!
+              Go! Make it! {"\u{1F389}"}
             </Button>
           </Card.Content>
         </Card>
@@ -528,10 +561,12 @@ export default function WorksheetGeneratorScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: spacing.lg,
+    padding: spacing.xl,
+    backgroundColor: colors.background,
   },
   card: {
     marginBottom: spacing.lg,
+    borderRadius: radii.xxl,
   },
   configItem: {
     marginVertical: spacing.md,
@@ -541,11 +576,13 @@ const styles = StyleSheet.create({
   },
   generateButton: {
     marginTop: spacing.lg,
+    borderRadius: radii.lg,
   },
   buttonGroup: {
     flexDirection: "row",
     flexWrap: "wrap",
     marginTop: spacing.sm,
+    gap: spacing.xs,
   },
   buttonInGroup: {
     marginVertical: spacing.xs,
@@ -553,29 +590,31 @@ const styles = StyleSheet.create({
   },
   buttonInGroupSelected: {
     borderWidth: 2,
-    borderColor: colors.selected,
+    borderColor: colors.coral400,
   },
   error: {
     color: colors.error,
     textAlign: "center",
     marginVertical: spacing.sm,
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold,
   },
   suggestionBanner: {
     marginTop: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.infoLight,
-    borderRadius: radii.md,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
+    padding: spacing.lg,
+    backgroundColor: colors.violet50,
+    borderRadius: radii.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.violet400,
   },
   suggestionText: {
     fontSize: fontSizes.md,
-    color: colors.blue700,
+    color: colors.violet700,
     lineHeight: 21,
   },
   suggestionAction: {
     fontSize: fontSizes.md,
-    color: colors.primary,
+    color: colors.violet500,
     fontWeight: fontWeights.bold,
     marginTop: spacing.xs,
   },
@@ -587,25 +626,207 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   changeSettingsLink: {
-    color: colors.primary,
+    color: colors.coral400,
     ...textPresets.labelSmall,
   },
 });
 
 const adventureStyles = StyleSheet.create({
-  modeToggle: { flexDirection: "row", borderRadius: radii.md, overflow: "hidden", marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.border },
-  modeButton: { flex: 1, paddingVertical: spacing.sm, alignItems: "center" },
-  modeButtonActive: { backgroundColor: colors.primary },
-  modeButtonText: { fontSize: fontSizes.sm, color: colors.textPrimary },
-  modeButtonTextActive: { color: colors.textOnPrimary, fontWeight: "700" },
-  arcProgress: { backgroundColor: colors.primaryLight, borderRadius: radii.md, padding: spacing.md, marginBottom: spacing.md },
-  arcTitle: { fontSize: fontSizes.md, fontWeight: "700", color: colors.primary, textAlign: "center" },
-  arcProgressBar: { height: 8, backgroundColor: colors.backdrop, borderRadius: radii.xs, marginTop: spacing.sm, overflow: "hidden" },
-  arcProgressFill: { height: "100%", backgroundColor: colors.primary, borderRadius: radii.xs },
-  arcProgressText: { fontSize: fontSizes.sm, color: colors.textSecondary, textAlign: "center", marginTop: spacing.xs },
-  narrativeIntro: { backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.lg, marginBottom: spacing.md, borderLeftWidth: 4, borderLeftColor: colors.primary },
-  narrativeCharacter: { fontSize: fontSizes.md, fontWeight: "600", color: colors.primary, marginBottom: spacing.sm },
-  narrativeText: { fontSize: fontSizes.md, color: colors.textPrimary, lineHeight: 24 },
-  switchButton: { alignSelf: "center", paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, marginTop: spacing.md, backgroundColor: colors.primaryLight, borderRadius: radii.lg },
-  switchButtonText: { fontSize: fontSizes.md, color: colors.primary, fontWeight: "600" },
+  modeToggle: {
+    flexDirection: "row",
+    borderRadius: radii.xl,
+    overflow: "hidden",
+    marginBottom: spacing.xl,
+    backgroundColor: colors.sand200,
+    padding: spacing.xs,
+  },
+  modeButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+    borderRadius: radii.lg,
+  },
+  modeButtonActive: {
+    backgroundColor: colors.surfaceElevated,
+    shadowColor: colors.plum900,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  modeButtonText: {
+    fontSize: fontSizes.md,
+    color: colors.textTertiary,
+    fontWeight: "600",
+  },
+  modeButtonTextActive: {
+    color: colors.textPrimary,
+    fontWeight: "700",
+  },
+  arcProgress: {
+    backgroundColor: colors.violet50,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  arcTitle: {
+    fontSize: fontSizes.base,
+    fontWeight: "700",
+    color: colors.violet500,
+    textAlign: "center",
+  },
+  arcProgressBar: {
+    height: 10,
+    backgroundColor: colors.violet100,
+    borderRadius: radii.sm,
+    marginTop: spacing.sm,
+    overflow: "hidden",
+  },
+  arcProgressFill: {
+    height: "100%",
+    backgroundColor: colors.violet400,
+    borderRadius: radii.sm,
+  },
+  arcProgressText: {
+    fontSize: fontSizes.sm,
+    color: colors.violet500,
+    textAlign: "center",
+    marginTop: spacing.xs,
+    fontWeight: "600",
+  },
+  narrativeIntro: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.xl,
+    padding: spacing.xl,
+    marginBottom: spacing.md,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.teal400,
+  },
+  narrativeCharacter: {
+    fontSize: fontSizes.md,
+    fontWeight: "700",
+    color: colors.teal500,
+    marginBottom: spacing.sm,
+  },
+  narrativeText: {
+    fontSize: fontSizes.base,
+    color: colors.textPrimary,
+    lineHeight: 24,
+  },
+  switchButton: {
+    alignSelf: "center",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    marginTop: spacing.lg,
+    backgroundColor: colors.coral50,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.coral300,
+  },
+  switchButtonText: {
+    fontSize: fontSizes.md,
+    color: colors.coral500,
+    fontWeight: "700",
+  },
+  adventureCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.xxl,
+    padding: spacing.xl,
+    shadowColor: colors.violet400,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  characterScene: {
+    alignItems: "center",
+    paddingVertical: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  starsRow: {
+    flexDirection: "row",
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  star: {
+    fontSize: 16,
+  },
+  characterCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.violet50,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.md,
+    borderWidth: 3,
+    borderColor: colors.violet300,
+  },
+  characterEmoji: {
+    fontSize: 44,
+  },
+  adventureTitle: {
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.extrabold,
+    color: colors.textPrimary,
+    textAlign: "center",
+    letterSpacing: -0.3,
+  },
+  adventureSubtitle: {
+    fontSize: fontSizes.base,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginTop: spacing.xs,
+  },
+  arcDots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  arcDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.violet100,
+  },
+  arcDotComplete: {
+    backgroundColor: colors.violet400,
+  },
+  errorBubble: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.coral50,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+  errorEmoji: {
+    fontSize: 28,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: fontSizes.md,
+    color: colors.coral500,
+    fontWeight: fontWeights.semibold,
+    lineHeight: 20,
+  },
+  goButton: {
+    backgroundColor: colors.teal400,
+    borderRadius: radii.pill,
+    paddingVertical: spacing.lg,
+    alignItems: "center",
+    shadowColor: colors.teal400,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  goButtonText: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.extrabold,
+    color: colors.white,
+    letterSpacing: 0.3,
+  },
 });
