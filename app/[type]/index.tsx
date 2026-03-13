@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { StyleSheet, ScrollView, View, TouchableOpacity } from "react-native";
+import { StyleSheet, ScrollView, View, TouchableOpacity, Pressable } from "react-native";
 import {
   Button,
   Card,
@@ -26,6 +26,12 @@ import {
 import { StorageService } from "../../services/StorageService";
 import { useAuth } from "../../context/AuthContext";
 import { CharacterService } from "../../services/CharacterService";
+import { adaptivePlannerService, AdaptiveWorksheet } from "@/services/AdaptivePlannerService";
+import { narrativeArcService } from "@/services/NarrativeArcService";
+import { discoveryQuestService } from "@/services/DiscoveryQuestService";
+import { studentProfileService } from "@/services/StudentProfileService";
+import { sessionService } from "@/services/SessionService";
+import { LearningPlan } from "@/types/adaptive-pipeline";
 
 const CHARACTER_EMOJIS: Record<string, string> = {
   ada: "\u{1F989}",
@@ -43,6 +49,12 @@ export default function WorksheetGeneratorScreen() {
   const [worksheet, setWorksheet] = useState<Worksheet | null>(null);
   const hasProfile = !!selectedStudent;
   const [showAdvanced, setShowAdvanced] = useState(!hasProfile);
+  const [adventureMode, setAdventureMode] = useState(false);
+  const [adaptiveResult, setAdaptiveResult] = useState<{
+    plan: LearningPlan;
+    worksheet: AdaptiveWorksheet;
+  } | null>(null);
+  const [arcProgress, setArcProgress] = useState<{ current: number; total: number; title: string } | null>(null);
 
   const theme = useAppTheme();
 
@@ -105,6 +117,92 @@ export default function WorksheetGeneratorScreen() {
       setLoading(false);
     }
   }, [config, currentUser]);
+
+  const studentId = selectedStudent?.id || currentUser?.uid || "";
+
+  const handleAdventureGenerate = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Check if student needs discovery quest (< 3 worksheets completed)
+      const profileData = await studentProfileService.getProfile(studentId);
+      const profile = profileData as (typeof profileData & { worksheetsCompleted?: number; favoriteThemes?: string[] }) | null;
+      const worksheetsCompleted = profile?.worksheetsCompleted ?? 0;
+      const phase = discoveryQuestService.getDiscoveryPhase(worksheetsCompleted);
+
+      let result;
+      if (phase !== "complete") {
+        // Discovery quest: use deterministic plan, then generate worksheet
+        const plan = discoveryQuestService.generateDiscoveryPlan(
+          studentId,
+          profile?.grade || "1",
+          selectedStudent?.selectedCharacterId || "ada",
+          phase,
+          profile?.favoriteThemes || ["animals"],
+          null,
+        );
+        const worksheet = await adaptivePlannerService.generateWorksheet(plan);
+        result = { plan, worksheet };
+      } else {
+        // Normal adaptive pipeline
+        result = await adaptivePlannerService.generateAdaptiveWorksheet(studentId);
+      }
+
+      setAdaptiveResult(result);
+      setArcProgress({
+        current: result.plan.arcBeat.position,
+        total: result.plan.arcBeat.totalBeats,
+        title: result.plan.arcTitle,
+      });
+
+      // Start session with theme for signal tracking
+      await sessionService.startSession(studentId, selectedStudent?.selectedCharacterId || "ada", result.plan.theme);
+
+      // Convert adaptive worksheet to existing format and save
+      if (currentUser) {
+        const adaptiveQuestions = result.worksheet.questions.map((q, i) => ({
+          id: `q_${i}`,
+          question: q.question,
+          answer: q.answer,
+          explanation: q.explanation,
+        }));
+        const templateId = await StorageService.createWorksheetTemplate({
+          title: result.worksheet.title,
+          config: { ...config, subject: result.plan.subject as any, difficulty: result.plan.difficulty as any },
+          questions: adaptiveQuestions,
+          createdBy: currentUser.uid,
+        });
+        const attemptId = await StorageService.startWorksheetAttempt(
+          currentUser.uid,
+          templateId,
+          result.worksheet.title,
+          adaptiveQuestions,
+        );
+        router.push(`/attempt/${attemptId}`);
+      }
+    } catch (err) {
+      console.error("[WorksheetGenerator] Adventure mode failed, falling back:", err);
+      setError("Adventure generation failed. Try manual mode.");
+    } finally {
+      setLoading(false);
+    }
+  }, [studentId, currentUser, config, selectedStudent]);
+
+  const handlePivot = React.useCallback(async () => {
+    const activeArc = await narrativeArcService.getActiveArc(studentId);
+    if (activeArc) {
+      const pivoted = narrativeArcService.pivotArc(activeArc, "student_requested_change");
+      await narrativeArcService.updateArc(studentId, pivoted);
+    }
+    setArcProgress(null);
+    setAdaptiveResult(null);
+    // Navigate to theme picker
+    router.push({
+      pathname: "/theme-picker" as any,
+      params: { studentId, character: selectedStudent?.selectedCharacterId || "ada" },
+    });
+  }, [studentId, selectedStudent]);
 
   const formatWorksheetContent = (
     worksheet: Worksheet,
@@ -201,6 +299,78 @@ export default function WorksheetGeneratorScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ScrollView style={styles.container}>
+        {/* Adventure Mode Toggle */}
+        <View style={adventureStyles.modeToggle}>
+          <Pressable
+            style={[adventureStyles.modeButton, !adventureMode && adventureStyles.modeButtonActive]}
+            onPress={() => setAdventureMode(false)}
+          >
+            <Text style={[adventureStyles.modeButtonText, !adventureMode && adventureStyles.modeButtonTextActive]}>
+              Manual
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[adventureStyles.modeButton, adventureMode && adventureStyles.modeButtonActive]}
+            onPress={() => setAdventureMode(true)}
+          >
+            <Text style={[adventureStyles.modeButtonText, adventureMode && adventureStyles.modeButtonTextActive]}>
+              Start Adventure!
+            </Text>
+          </Pressable>
+        </View>
+
+        {adventureMode ? (
+          <Card style={styles.card}>
+            <Card.Content>
+              {/* Arc Progress */}
+              {arcProgress && (
+                <View style={adventureStyles.arcProgress}>
+                  <Text style={adventureStyles.arcTitle}>{arcProgress.title}</Text>
+                  <View style={adventureStyles.arcProgressBar}>
+                    <View style={[adventureStyles.arcProgressFill, { width: `${(arcProgress.current / arcProgress.total) * 100}%` }]} />
+                  </View>
+                  <Text style={adventureStyles.arcProgressText}>
+                    Beat {arcProgress.current} of {arcProgress.total}
+                  </Text>
+                </View>
+              )}
+
+              {/* Narrative Intro */}
+              {adaptiveResult && (
+                <View style={adventureStyles.narrativeIntro}>
+                  <Text style={adventureStyles.narrativeCharacter}>
+                    {adaptiveResult.worksheet.characterDialogue.greeting}
+                  </Text>
+                  <Text style={adventureStyles.narrativeText}>
+                    {adaptiveResult.worksheet.narrativeIntro}
+                  </Text>
+                </View>
+              )}
+
+              {error && <Text style={styles.error}>{error}</Text>}
+
+              <Button
+                mode="contained"
+                onPress={handleAdventureGenerate}
+                loading={loading}
+                disabled={loading}
+                style={styles.generateButton}
+              >
+                {arcProgress ? "Continue Adventure!" : "Start My Adventure!"}
+              </Button>
+
+              {/* Pivot button */}
+              {arcProgress && (
+                <Pressable
+                  style={adventureStyles.switchButton}
+                  onPress={handlePivot}
+                >
+                  <Text style={adventureStyles.switchButtonText}>I want a different adventure!</Text>
+                </Pressable>
+              )}
+            </Card.Content>
+          </Card>
+        ) : (
         <Card style={styles.card}>
           <Card.Title
             title={WORKSHEET_TYPE_LABELS[type]}
@@ -337,6 +507,7 @@ export default function WorksheetGeneratorScreen() {
             </Button>
           </Card.Content>
         </Card>
+        )}
 
         {worksheet && (
           <WorksheetPreview
@@ -419,4 +590,22 @@ const styles = StyleSheet.create({
     color: colors.primary,
     ...textPresets.labelSmall,
   },
+});
+
+const adventureStyles = StyleSheet.create({
+  modeToggle: { flexDirection: "row", borderRadius: radii.md, overflow: "hidden", marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.border },
+  modeButton: { flex: 1, paddingVertical: spacing.sm, alignItems: "center" },
+  modeButtonActive: { backgroundColor: colors.primary },
+  modeButtonText: { fontSize: fontSizes.sm, color: colors.textPrimary },
+  modeButtonTextActive: { color: colors.textOnPrimary, fontWeight: "700" },
+  arcProgress: { backgroundColor: colors.primaryLight, borderRadius: radii.md, padding: spacing.md, marginBottom: spacing.md },
+  arcTitle: { fontSize: fontSizes.md, fontWeight: "700", color: colors.primary, textAlign: "center" },
+  arcProgressBar: { height: 8, backgroundColor: colors.backdrop, borderRadius: radii.xs, marginTop: spacing.sm, overflow: "hidden" },
+  arcProgressFill: { height: "100%", backgroundColor: colors.primary, borderRadius: radii.xs },
+  arcProgressText: { fontSize: fontSizes.xs, color: colors.textSecondary, textAlign: "center", marginTop: spacing.xs },
+  narrativeIntro: { backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.lg, marginBottom: spacing.md, borderLeftWidth: 4, borderLeftColor: colors.primary },
+  narrativeCharacter: { fontSize: fontSizes.md, fontWeight: "600", color: colors.primary, marginBottom: spacing.sm },
+  narrativeText: { fontSize: fontSizes.md, color: colors.textPrimary, lineHeight: 24 },
+  switchButton: { alignSelf: "center", paddingVertical: spacing.xs, marginTop: spacing.sm },
+  switchButtonText: { fontSize: fontSizes.sm, color: colors.textSecondary, textDecorationLine: "underline" },
 });
