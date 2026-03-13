@@ -183,7 +183,7 @@ export default function WorksheetGeneratorScreen() {
       }
     } catch (err) {
       console.error("[WorksheetGenerator] Adventure mode failed, falling back:", err);
-      setError("Adventure generation failed. Try manual mode.");
+      setError("Oops! Something went wrong. Try building your own worksheet instead!");
     } finally {
       setLoading(false);
     }
@@ -306,7 +306,7 @@ export default function WorksheetGeneratorScreen() {
             onPress={() => setAdventureMode(false)}
           >
             <Text style={[adventureStyles.modeButtonText, !adventureMode && adventureStyles.modeButtonTextActive]}>
-              Manual
+              Build My Own
             </Text>
           </Pressable>
           <Pressable
@@ -330,7 +330,7 @@ export default function WorksheetGeneratorScreen() {
                     <View style={[adventureStyles.arcProgressFill, { width: `${(arcProgress.current / arcProgress.total) * 100}%` }]} />
                   </View>
                   <Text style={adventureStyles.arcProgressText}>
-                    Beat {arcProgress.current} of {arcProgress.total}
+                    Step {arcProgress.current} of {arcProgress.total}
                   </Text>
                 </View>
               )}
@@ -365,7 +365,7 @@ export default function WorksheetGeneratorScreen() {
                   style={adventureStyles.switchButton}
                   onPress={handlePivot}
                 >
-                  <Text style={adventureStyles.switchButtonText}>I want a different adventure!</Text>
+                  <Text style={adventureStyles.switchButtonText}>🔄 I want a different adventure!</Text>
                 </Pressable>
               )}
             </Card.Content>
@@ -602,10 +602,10 @@ const adventureStyles = StyleSheet.create({
   arcTitle: { fontSize: fontSizes.md, fontWeight: "700", color: colors.primary, textAlign: "center" },
   arcProgressBar: { height: 8, backgroundColor: colors.backdrop, borderRadius: radii.xs, marginTop: spacing.sm, overflow: "hidden" },
   arcProgressFill: { height: "100%", backgroundColor: colors.primary, borderRadius: radii.xs },
-  arcProgressText: { fontSize: fontSizes.xs, color: colors.textSecondary, textAlign: "center", marginTop: spacing.xs },
+  arcProgressText: { fontSize: fontSizes.sm, color: colors.textSecondary, textAlign: "center", marginTop: spacing.xs },
   narrativeIntro: { backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.lg, marginBottom: spacing.md, borderLeftWidth: 4, borderLeftColor: colors.primary },
   narrativeCharacter: { fontSize: fontSizes.md, fontWeight: "600", color: colors.primary, marginBottom: spacing.sm },
   narrativeText: { fontSize: fontSizes.md, color: colors.textPrimary, lineHeight: 24 },
-  switchButton: { alignSelf: "center", paddingVertical: spacing.xs, marginTop: spacing.sm },
-  switchButtonText: { fontSize: fontSizes.sm, color: colors.textSecondary, textDecorationLine: "underline" },
+  switchButton: { alignSelf: "center", paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, marginTop: spacing.md, backgroundColor: colors.primaryLight, borderRadius: radii.lg },
+  switchButtonText: { fontSize: fontSizes.md, color: colors.primary, fontWeight: "600" },
 });

@@ -56,7 +56,13 @@ export function PreferencesSetup({ studentName, onComplete, onSkip }: Preference
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>What does {studentName} love?</Text>
-      <Text style={styles.subtitle}>Pick up to 3 favorites</Text>
+      <Text style={styles.subtitle}>
+        {selectedThemes.length === 0
+          ? "Pick up to 3 favorites"
+          : selectedThemes.length < 3
+            ? `${selectedThemes.length} of 3 picked — keep going!`
+            : "3 of 3 picked — looks great!"}
+      </Text>
 
       <View style={styles.grid}>
         {THEME_OPTIONS.map((theme) => (

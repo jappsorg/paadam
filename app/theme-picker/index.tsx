@@ -3,6 +3,7 @@ import { View, StyleSheet, Pressable } from "react-native";
 import { Text } from "react-native-paper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
+import { CharacterService } from "@/services/CharacterService";
 import { colors, spacing, fontSizes } from "@/theme";
 
 const THEME_VISUALS: Record<string, { emoji: string; color: string }> = {
@@ -26,7 +27,9 @@ export default function ThemePickerScreen() {
   }>();
 
   const choices = (params.choices || "animals,space,cooking").split(",");
-  const character = params.character || "Ada";
+  const characterId = params.character || "ada";
+  const characterData = CharacterService.getCharacterById(characterId);
+  const characterName = characterData?.name || "Ada";
 
   const handleSelect = (theme: string) => {
     router.push({
@@ -44,7 +47,7 @@ export default function ThemePickerScreen() {
     <ScreenContainer>
       <View style={styles.container}>
         <Text style={styles.title}>Pick Your Next Adventure!</Text>
-        <Text style={styles.subtitle}>{character} is ready to explore with you</Text>
+        <Text style={styles.subtitle}>{characterName} is ready to explore with you!</Text>
 
         <View style={styles.cards}>
           {choices.map((theme) => {
