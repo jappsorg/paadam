@@ -264,6 +264,13 @@ PivotDecision {
 - `users/{uid}/narrative_arcs/{arcId}` — Arc state, beats, narrative context
 - `users/{uid}/theme_affinities/{themeId}` — Per-theme, per-skill affinity scores
 
+### Error Handling
+
+If either LLM call fails (network error, malformed output, validation failure):
+- **Planner failure:** Fall back to the existing manual `generateWorksheet(config)` path using the student's current skill mastery to pick subject/difficulty. The experience degrades gracefully to a non-narrative worksheet.
+- **Generator failure:** Retry once with the same plan. If still failing, fall back to manual generation.
+- **Zod validation failure:** Retry the LLM call with the validation error appended to the prompt (up to 2 retries), then fall back to manual generation.
+
 ### Untouched
 
 AuthService, StorageService, CharacterService, StudentProfileService (read from, not modified), all existing types in `adaptive-learning.ts` and `worksheet.ts`, design system, navigation, existing manual worksheet generation flow.
