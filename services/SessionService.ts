@@ -26,6 +26,8 @@ import {
   BehavioralPattern,
   QuestionAttempt,
 } from "../types/adaptive-learning";
+import { themeAffinityService } from "@/services/ThemeAffinityService";
+import { signalAggregatorService } from "@/services/SignalAggregatorService";
 
 export class SessionService {
   private static readonly SESSIONS_COLLECTION = "sessions";
@@ -37,6 +39,7 @@ export class SessionService {
   async startSession(
     studentId: string,
     characterId: string,
+    theme?: string,
   ): Promise<LearningSession> {
     const sessionId = this.generateSessionId();
     const now = new Date();
@@ -45,6 +48,7 @@ export class SessionService {
       id: sessionId,
       studentId,
       characterId,
+      theme: theme || undefined,
 
       startTime: now,
       endTime: null,
@@ -242,6 +246,35 @@ export class SessionService {
       sessionId,
       `Duration: ${durationMinutes}min`,
     );
+
+    // Feed signals to adaptive system
+    try {
+      if (session.skillsWorkedOn.length > 0) {
+        const signals = signalAggregatorService.computeSessionSignals(
+          sessionId,
+          session.studentId,
+          session.theme || "general",
+          session.skillsWorkedOn[0],
+          {
+            questionsAttempted: session.questionsAttempted.map((q) => ({
+              isCorrect: q.isCorrect,
+              timeSpent: q.timeSpent,
+              attemptNumber: q.attemptNumber,
+            })),
+            emotionalStates: session.emotionalStates.map((e) => ({
+              emotion: e.emotion,
+              intensity: e.intensity,
+            })),
+            totalQuestions: session.questionsAttempted.filter((q) => q.attemptNumber === 1).length,
+            questionsCompleted: session.questionsAttempted.filter((q) => q.isCorrect).length,
+          },
+        );
+        await themeAffinityService.updateAffinityFromSession(session.studentId, signals);
+      }
+    } catch (error) {
+      console.error("[SessionService] Failed to update adaptive signals:", error);
+      // Non-blocking — don't break session end for signal failure
+    }
 
     return (await this.getSession(sessionId))!;
   }
