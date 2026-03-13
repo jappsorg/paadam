@@ -5,8 +5,8 @@ jest.mock("@/firebaseConfig", () => ({ db: {} }));
 jest.mock("ai", () => ({
   generateObject: jest.fn(),
 }));
-jest.mock("@ai-sdk/anthropic", () => ({
-  createAnthropic: jest.fn(() => jest.fn()),
+jest.mock("@openrouter/ai-sdk-provider", () => ({
+  createOpenRouter: jest.fn(() => jest.fn()),
 }));
 jest.mock("@/services/SignalAggregatorService", () => ({
   signalAggregatorService: {

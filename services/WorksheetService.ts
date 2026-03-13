@@ -1,5 +1,5 @@
 import { generateObject, CoreMessage } from "ai";
-import { createAnthropic } from "@ai-sdk/anthropic";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { z } from "zod";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -8,10 +8,10 @@ import {
   WorksheetQuestion,
   Worksheet,
 } from "../types/worksheet";
-import { ANTHROPIC_MODELS } from "@/constants";
+import { LLM_MODELS } from "@/constants";
 
-const anthropicProvider = createAnthropic({
-  apiKey: process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY,
+const openrouter = createOpenRouter({
+  apiKey: process.env.EXPO_PUBLIC_OPENROUTER_API_KEY,
 });
 
 const WorksheetQuestionFormatSchema = z.object({
@@ -112,7 +112,7 @@ export class WorksheetService {
       const prompts = this.getPromptsForWorksheetType(config);
 
       const { object } = await generateObject<TWorksheetResponseFormat>({
-        model: anthropicProvider(ANTHROPIC_MODELS.CLAUDE_HAIKU),
+        model: openrouter(LLM_MODELS.CLAUDE_HAIKU),
         schema: WorksheetResponseFormatSchema,
         messages: prompts,
       });
