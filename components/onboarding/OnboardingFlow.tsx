@@ -12,14 +12,16 @@ import React, { useState } from "react";
 import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
 import ProfileSetup from "./ProfileSetup";
 import CharacterSelection from "./CharacterSelection";
+import { PreferencesSetup } from "@/components/onboarding/PreferencesSetup";
 import { Grade } from "../../types/adaptive-learning";
 import { useAuth } from "../../context/AuthContext";
 import { studentProfileService } from "../../services/StudentProfileService";
 import { assetDownloadManager } from "../../services/AssetDownloadManager";
 import { authService } from "../../services/AuthService";
+import { themeAffinityService } from "@/services/ThemeAffinityService";
 import { colors, spacing, radii, fontSizes, fontWeights, sizes } from "@/theme";
 
-type OnboardingStep = "profile" | "character" | "downloading" | "complete";
+type OnboardingStep = "profile" | "character" | "preferences" | "downloading" | "complete";
 
 interface ProfileData {
   name: string;
@@ -36,6 +38,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [studentId, setStudentId] = useState<string | null>(null);
 
   /**
    * Handle profile setup completion
@@ -91,9 +94,9 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         background: true,
       });
 
-      // Complete onboarding
-      setCurrentStep("complete");
-      onComplete(studentProfile.id);
+      // Move to preferences step
+      setStudentId(studentProfile.id);
+      setCurrentStep("preferences");
     } catch (err) {
       console.error("[OnboardingFlow] Error:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -111,6 +114,38 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         <CharacterSelection
           onCharacterSelected={handleCharacterSelected}
           studentName={profileData?.name}
+        />
+      );
+
+    case "preferences":
+      return (
+        <PreferencesSetup
+          studentName={profileData?.name || "your child"}
+          onComplete={async (preferences) => {
+            if (studentId) {
+              // Seed theme affinities with neutral-positive scores
+              for (const theme of preferences.favoriteThemes) {
+                await themeAffinityService.updateAffinityFromSession(studentId, {
+                  sessionId: "onboarding",
+                  studentId,
+                  theme,
+                  skill: "general",
+                  accuracy: 0.5,
+                  engagement: 0.5,
+                  emotionScore: 0.5,
+                  speedScore: 0.5,
+                  retryScore: 0.5,
+                  timestamp: new Date(),
+                });
+              }
+            }
+            setCurrentStep("complete");
+            if (studentId) onComplete(studentId);
+          }}
+          onSkip={() => {
+            setCurrentStep("complete");
+            if (studentId) onComplete(studentId);
+          }}
         />
       );
 
