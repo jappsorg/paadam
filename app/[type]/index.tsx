@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { StyleSheet, ScrollView, View, TouchableOpacity } from "react-native";
+import { StyleSheet, ScrollView, View, TouchableOpacity, Pressable } from "react-native";
 import {
   Button,
   Card,
   Text,
   SegmentedButtons,
   Switch,
-  useTheme,
 } from "react-native-paper";
+import { colors, spacing, radii, fontSizes, fontWeights, textPresets, useAppTheme } from "@/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import WorksheetService from "../../services/WorksheetService";
@@ -26,6 +26,12 @@ import {
 import { StorageService } from "../../services/StorageService";
 import { useAuth } from "../../context/AuthContext";
 import { CharacterService } from "../../services/CharacterService";
+import { adaptivePlannerService, AdaptiveWorksheet } from "@/services/AdaptivePlannerService";
+import { narrativeArcService } from "@/services/NarrativeArcService";
+import { discoveryQuestService } from "@/services/DiscoveryQuestService";
+import { studentProfileService } from "@/services/StudentProfileService";
+import { sessionService } from "@/services/SessionService";
+import { LearningPlan } from "@/types/adaptive-pipeline";
 
 const CHARACTER_EMOJIS: Record<string, string> = {
   ada: "\u{1F989}",
@@ -41,8 +47,16 @@ export default function WorksheetGeneratorScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [worksheet, setWorksheet] = useState<Worksheet | null>(null);
+  const hasProfile = !!selectedStudent;
+  const [showAdvanced, setShowAdvanced] = useState(!hasProfile);
+  const [adventureMode, setAdventureMode] = useState(false);
+  const [adaptiveResult, setAdaptiveResult] = useState<{
+    plan: LearningPlan;
+    worksheet: AdaptiveWorksheet;
+  } | null>(null);
+  const [arcProgress, setArcProgress] = useState<{ current: number; total: number; title: string } | null>(null);
 
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   const [config, setConfig] = useState<WorksheetConfig>({
     type: type || "math",
@@ -97,12 +111,98 @@ export default function WorksheetGeneratorScreen() {
         console.log("User not logged in. Worksheet not saved to an account.");
       }
     } catch (err) {
-      setError("Failed to generate worksheet. Please try again.");
+      setError("Oops! Something got mixed up. Let\u2019s try again!");
       console.error("Worksheet generation error:", err);
     } finally {
       setLoading(false);
     }
   }, [config, currentUser]);
+
+  const studentId = selectedStudent?.id || currentUser?.uid || "";
+
+  const handleAdventureGenerate = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Check if student needs discovery quest (< 3 worksheets completed)
+      const profileData = await studentProfileService.getProfile(studentId);
+      const profile = profileData as (typeof profileData & { worksheetsCompleted?: number; favoriteThemes?: string[] }) | null;
+      const worksheetsCompleted = profile?.worksheetsCompleted ?? 0;
+      const phase = discoveryQuestService.getDiscoveryPhase(worksheetsCompleted);
+
+      let result;
+      if (phase !== "complete") {
+        // Discovery quest: use deterministic plan, then generate worksheet
+        const plan = discoveryQuestService.generateDiscoveryPlan(
+          studentId,
+          profile?.grade || "1",
+          selectedStudent?.selectedCharacterId || "ada",
+          phase,
+          profile?.favoriteThemes || ["animals"],
+          null,
+        );
+        const worksheet = await adaptivePlannerService.generateWorksheet(plan);
+        result = { plan, worksheet };
+      } else {
+        // Normal adaptive pipeline
+        result = await adaptivePlannerService.generateAdaptiveWorksheet(studentId);
+      }
+
+      setAdaptiveResult(result);
+      setArcProgress({
+        current: result.plan.arcBeat.position,
+        total: result.plan.arcBeat.totalBeats,
+        title: result.plan.arcTitle,
+      });
+
+      // Start session with theme for signal tracking
+      await sessionService.startSession(studentId, selectedStudent?.selectedCharacterId || "ada", result.plan.theme);
+
+      // Convert adaptive worksheet to existing format and save
+      if (currentUser) {
+        const adaptiveQuestions = result.worksheet.questions.map((q, i) => ({
+          id: `q_${i}`,
+          question: q.question,
+          answer: q.answer,
+          explanation: q.explanation,
+        }));
+        const templateId = await StorageService.createWorksheetTemplate({
+          title: result.worksheet.title,
+          config: { ...config, subject: result.plan.subject as any, difficulty: result.plan.difficulty as any },
+          questions: adaptiveQuestions,
+          createdBy: currentUser.uid,
+        });
+        const attemptId = await StorageService.startWorksheetAttempt(
+          currentUser.uid,
+          templateId,
+          result.worksheet.title,
+          adaptiveQuestions,
+        );
+        router.push(`/attempt/${attemptId}`);
+      }
+    } catch (err) {
+      console.error("[WorksheetGenerator] Adventure mode failed, falling back:", err);
+      setError("Oops! Something went wrong. Try building your own worksheet instead!");
+    } finally {
+      setLoading(false);
+    }
+  }, [studentId, currentUser, config, selectedStudent]);
+
+  const handlePivot = React.useCallback(async () => {
+    const activeArc = await narrativeArcService.getActiveArc(studentId);
+    if (activeArc) {
+      const pivoted = narrativeArcService.pivotArc(activeArc, "student_requested_change");
+      await narrativeArcService.updateArc(studentId, pivoted);
+    }
+    setArcProgress(null);
+    setAdaptiveResult(null);
+    // Navigate to theme picker
+    router.push({
+      pathname: "/theme-picker" as any,
+      params: { studentId, character: selectedStudent?.selectedCharacterId || "ada" },
+    });
+  }, [studentId, selectedStudent]);
 
   const formatWorksheetContent = (
     worksheet: Worksheet,
@@ -154,6 +254,7 @@ export default function WorksheetGeneratorScreen() {
     if (selectedStudent?.grade) {
       updateConfig({ grade: selectedStudent.grade as any });
     }
+    setShowAdvanced(!selectedStudent);
   }, [selectedStudent]);
 
   React.useEffect(() => {
@@ -196,16 +297,133 @@ export default function WorksheetGeneratorScreen() {
   }, [config.subject, config.difficulty, selectedStudent]);
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView style={styles.container}>
+        {/* Adventure Mode Toggle */}
+        <View style={adventureStyles.modeToggle}>
+          <Pressable
+            style={[adventureStyles.modeButton, !adventureMode && adventureStyles.modeButtonActive]}
+            onPress={() => { setAdventureMode(false); setError(null); }}
+          >
+            <Text style={[adventureStyles.modeButtonText, !adventureMode && adventureStyles.modeButtonTextActive]}>
+              {"\u{1F527}"} Build My Own
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[adventureStyles.modeButton, adventureMode && adventureStyles.modeButtonActive]}
+            onPress={() => { setAdventureMode(true); setError(null); }}
+          >
+            <Text style={[adventureStyles.modeButtonText, adventureMode && adventureStyles.modeButtonTextActive]}>
+              {"\u{1F680}"} Adventure!
+            </Text>
+          </Pressable>
+        </View>
+
+        {adventureMode ? (
+          <View style={adventureStyles.adventureCard}>
+            {/* Character scene */}
+            <View style={adventureStyles.characterScene}>
+              <View style={adventureStyles.starsRow}>
+                <Text style={adventureStyles.star}>{"\u2728"}</Text>
+                <Text style={[adventureStyles.star, { fontSize: 20 }]}>{"\u2B50"}</Text>
+                <Text style={adventureStyles.star}>{"\u2728"}</Text>
+              </View>
+              <View style={adventureStyles.characterCircle}>
+                <Text style={adventureStyles.characterEmoji}>
+                  {CHARACTER_EMOJIS[selectedStudent?.selectedCharacterId || "ada"] || "\u{1F989}"}
+                </Text>
+              </View>
+              <Text style={adventureStyles.adventureTitle}>
+                {arcProgress ? arcProgress.title : "Ready for an Adventure?"}
+              </Text>
+              <Text style={adventureStyles.adventureSubtitle}>
+                {arcProgress
+                  ? `You're on step ${arcProgress.current} of ${arcProgress.total}!`
+                  : "Your buddy will pick the perfect challenge for you!"}
+              </Text>
+            </View>
+
+            {/* Arc Progress */}
+            {arcProgress && (
+              <View style={adventureStyles.arcProgress}>
+                <View style={adventureStyles.arcProgressBar}>
+                  <View style={[adventureStyles.arcProgressFill, { width: `${(arcProgress.current / arcProgress.total) * 100}%` }]} />
+                </View>
+                <View style={adventureStyles.arcDots}>
+                  {Array.from({ length: arcProgress.total }, (_, i) => (
+                    <View key={i} style={[adventureStyles.arcDot, i < arcProgress.current && adventureStyles.arcDotComplete]} />
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Narrative Intro */}
+            {adaptiveResult && (
+              <View style={adventureStyles.narrativeIntro}>
+                <Text style={adventureStyles.narrativeCharacter}>
+                  {adaptiveResult.worksheet.characterDialogue.greeting}
+                </Text>
+                <Text style={adventureStyles.narrativeText}>
+                  {adaptiveResult.worksheet.narrativeIntro}
+                </Text>
+              </View>
+            )}
+
+            {error && (
+              <View style={adventureStyles.errorBubble}>
+                <Text style={adventureStyles.errorEmoji}>{"\uD83D\uDE05"}</Text>
+                <Text style={adventureStyles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [
+                adventureStyles.goButton,
+                pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
+                loading && { opacity: 0.7 },
+              ]}
+              onPress={handleAdventureGenerate}
+              disabled={loading}
+            >
+              <Text style={adventureStyles.goButtonText}>
+                {loading ? "Getting ready..." : arcProgress ? "Keep Going! \u{1F680}" : "Let's Go! \u{1F680}"}
+              </Text>
+            </Pressable>
+
+            {/* Pivot button — visible, kid-friendly */}
+            {arcProgress && (
+              <Pressable
+                style={({ pressed }) => [
+                  adventureStyles.switchButton,
+                  pressed && { opacity: 0.8 },
+                ]}
+                onPress={handlePivot}
+              >
+                <Text style={adventureStyles.switchButtonText}>{"\uD83D\uDD04"} I want something different!</Text>
+              </Pressable>
+            )}
+          </View>
+        ) : (
         <Card style={styles.card}>
           <Card.Title
             title={WORKSHEET_TYPE_LABELS[type]}
             titleVariant="headlineMedium"
           />
           <Card.Content>
+            {hasProfile && !showAdvanced ? (
+              <View style={styles.quickStart}>
+                <Text variant="bodyLarge" style={styles.quickStartText}>
+                  Ready for {selectedStudent.name}! Grade {config.grade},{" "}
+                  {config.difficulty} difficulty.
+                </Text>
+                <TouchableOpacity onPress={() => setShowAdvanced(true)}>
+                  <Text style={styles.changeSettingsLink}>Change settings</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+            <>
             <View style={styles.configItem}>
-              <Text variant="titleMedium">My Grade</Text>
+              <Text variant="titleMedium">What grade are you in?</Text>
               <View style={styles.buttonGroup} key={config.grade}>
                 {WORKSHEET_GRADE_OPTIONS.map((grade) => (
                   <Button
@@ -229,7 +447,7 @@ export default function WorksheetGeneratorScreen() {
               type === "word-problem" ||
               type === "puzzle") && (
               <View style={styles.configItem}>
-                <Text variant="titleMedium">Subject</Text>
+                <Text variant="titleMedium">What do you want to practice?</Text>
                 <View style={styles.buttonGroup} key={config.subject}>
                   {MATH_SUBJECT_OPTIONS.map((subject) => (
                     <Button
@@ -251,7 +469,7 @@ export default function WorksheetGeneratorScreen() {
             )}
 
             <View style={styles.configItem}>
-              <Text variant="titleMedium">Difficulty</Text>
+              <Text variant="titleMedium">How tricky should it be?</Text>
               <SegmentedButtons
                 value={config.difficulty}
                 onValueChange={(difficulty) =>
@@ -282,7 +500,7 @@ export default function WorksheetGeneratorScreen() {
             </View>
 
             <View style={styles.configItem}>
-              <Text variant="titleMedium">How many questions?</Text>
+              <Text variant="titleMedium">How many problems?</Text>
               <SegmentedButtons
                 value={config.questionsCount.toString()}
                 onValueChange={(value) =>
@@ -296,7 +514,7 @@ export default function WorksheetGeneratorScreen() {
             </View>
 
             <View style={styles.configItem}>
-              <Text variant="titleMedium">Include Answers</Text>
+              <Text variant="titleMedium">Show answers on the sheet?</Text>
               <Switch
                 value={config.includeAnswers}
                 onValueChange={(includeAnswers) =>
@@ -306,6 +524,8 @@ export default function WorksheetGeneratorScreen() {
                 color={theme.colors.tertiary}
               />
             </View>
+            </>
+            )}
 
             {error && <Text style={styles.error}>{error}</Text>}
 
@@ -316,10 +536,11 @@ export default function WorksheetGeneratorScreen() {
               disabled={loading}
               style={styles.generateButton}
             >
-              Make My Worksheet!
+              Go! Make it! {"\u{1F389}"}
             </Button>
           </Card.Content>
         </Card>
+        )}
 
         {worksheet && (
           <WorksheetPreview
@@ -340,55 +561,272 @@ export default function WorksheetGeneratorScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: spacing.xl,
+    backgroundColor: colors.background,
   },
   card: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
+    borderRadius: radii.xxl,
   },
   configItem: {
-    marginVertical: 12,
+    marginVertical: spacing.md,
   },
   input: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   generateButton: {
-    marginTop: 16,
+    marginTop: spacing.lg,
+    borderRadius: radii.lg,
   },
   buttonGroup: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginTop: 8,
+    marginTop: spacing.sm,
+    gap: spacing.xs,
   },
   buttonInGroup: {
-    marginVertical: 4,
-    marginHorizontal: 4,
+    marginVertical: spacing.xs,
+    marginHorizontal: spacing.xs,
   },
   buttonInGroupSelected: {
     borderWidth: 2,
-    borderColor: "#4CAF50",
+    borderColor: colors.coral400,
   },
   error: {
-    color: "red",
+    color: colors.error,
     textAlign: "center",
-    marginVertical: 8,
+    marginVertical: spacing.sm,
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold,
   },
   suggestionBanner: {
-    marginTop: 10,
-    padding: 12,
-    backgroundColor: "#E3F2FD",
-    borderRadius: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: "#4A90E2",
+    marginTop: spacing.md,
+    padding: spacing.lg,
+    backgroundColor: colors.violet50,
+    borderRadius: radii.lg,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.violet400,
   },
   suggestionText: {
-    fontSize: 14,
-    color: "#1565C0",
+    fontSize: fontSizes.md,
+    color: colors.violet700,
     lineHeight: 21,
   },
   suggestionAction: {
-    fontSize: 14,
-    color: "#4A90E2",
+    fontSize: fontSizes.md,
+    color: colors.violet500,
+    fontWeight: fontWeights.bold,
+    marginTop: spacing.xs,
+  },
+  quickStart: {
+    paddingVertical: spacing.lg,
+    gap: spacing.sm,
+  },
+  quickStartText: {
+    color: colors.textSecondary,
+  },
+  changeSettingsLink: {
+    color: colors.coral400,
+    ...textPresets.labelSmall,
+  },
+});
+
+const adventureStyles = StyleSheet.create({
+  modeToggle: {
+    flexDirection: "row",
+    borderRadius: radii.xl,
+    overflow: "hidden",
+    marginBottom: spacing.xl,
+    backgroundColor: colors.sand200,
+    padding: spacing.xs,
+  },
+  modeButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+    borderRadius: radii.lg,
+  },
+  modeButtonActive: {
+    backgroundColor: colors.surfaceElevated,
+    shadowColor: colors.plum900,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  modeButtonText: {
+    fontSize: fontSizes.md,
+    color: colors.textTertiary,
+    fontWeight: "600",
+  },
+  modeButtonTextActive: {
+    color: colors.textPrimary,
     fontWeight: "700",
-    marginTop: 4,
+  },
+  arcProgress: {
+    backgroundColor: colors.violet50,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  arcTitle: {
+    fontSize: fontSizes.base,
+    fontWeight: "700",
+    color: colors.violet500,
+    textAlign: "center",
+  },
+  arcProgressBar: {
+    height: 10,
+    backgroundColor: colors.violet100,
+    borderRadius: radii.sm,
+    marginTop: spacing.sm,
+    overflow: "hidden",
+  },
+  arcProgressFill: {
+    height: "100%",
+    backgroundColor: colors.violet400,
+    borderRadius: radii.sm,
+  },
+  arcProgressText: {
+    fontSize: fontSizes.sm,
+    color: colors.violet500,
+    textAlign: "center",
+    marginTop: spacing.xs,
+    fontWeight: "600",
+  },
+  narrativeIntro: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.xl,
+    padding: spacing.xl,
+    marginBottom: spacing.md,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.teal400,
+  },
+  narrativeCharacter: {
+    fontSize: fontSizes.md,
+    fontWeight: "700",
+    color: colors.teal500,
+    marginBottom: spacing.sm,
+  },
+  narrativeText: {
+    fontSize: fontSizes.base,
+    color: colors.textPrimary,
+    lineHeight: 24,
+  },
+  switchButton: {
+    alignSelf: "center",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    marginTop: spacing.lg,
+    backgroundColor: colors.coral50,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.coral300,
+  },
+  switchButtonText: {
+    fontSize: fontSizes.md,
+    color: colors.coral500,
+    fontWeight: "700",
+  },
+  adventureCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.xxl,
+    padding: spacing.xl,
+    shadowColor: colors.violet400,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  characterScene: {
+    alignItems: "center",
+    paddingVertical: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  starsRow: {
+    flexDirection: "row",
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  star: {
+    fontSize: 16,
+  },
+  characterCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.violet50,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.md,
+    borderWidth: 3,
+    borderColor: colors.violet300,
+  },
+  characterEmoji: {
+    fontSize: 44,
+  },
+  adventureTitle: {
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.extrabold,
+    color: colors.textPrimary,
+    textAlign: "center",
+    letterSpacing: -0.3,
+  },
+  adventureSubtitle: {
+    fontSize: fontSizes.base,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginTop: spacing.xs,
+  },
+  arcDots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  arcDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.violet100,
+  },
+  arcDotComplete: {
+    backgroundColor: colors.violet400,
+  },
+  errorBubble: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.coral50,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+  errorEmoji: {
+    fontSize: 28,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: fontSizes.md,
+    color: colors.coral500,
+    fontWeight: fontWeights.semibold,
+    lineHeight: 20,
+  },
+  goButton: {
+    backgroundColor: colors.teal400,
+    borderRadius: radii.pill,
+    paddingVertical: spacing.lg,
+    alignItems: "center",
+    shadowColor: colors.teal400,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  goButtonText: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.extrabold,
+    color: colors.white,
+    letterSpacing: 0.3,
   },
 });

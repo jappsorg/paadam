@@ -9,16 +9,27 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
+import {
+  AppTextInput,
+  PrimaryButton,
+  SecondaryButton,
+} from "@/components/ui";
+import {
+  colors,
+  spacing,
+  radii,
+  fontSizes,
+  fontWeights,
+  shadows,
+} from "@/theme";
 
 interface SignInScreenProps {
   onSignInSuccess: () => void;
@@ -35,7 +46,6 @@ export default function SignInScreen({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   const handleEmailSignIn = async () => {
     if (!email.trim() || !password) {
@@ -70,12 +80,16 @@ export default function SignInScreen({
   };
 
   const handleForgotPassword = () => {
-    // TODO: Navigate to forgot password screen
     Alert.alert("Reset Password", "Password reset functionality coming soon!");
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Decorative shapes */}
+      <View style={styles.bgCircle1} />
+      <View style={styles.bgCircle2} />
+      <View style={styles.bgCircle3} />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
@@ -85,22 +99,23 @@ export default function SignInScreen({
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.logo}>📚 Paadam</Text>
-            <Text style={styles.title}>Welcome Back!</Text>
-            <Text style={styles.subtitle}>Sign in to continue learning</Text>
+          {/* Hero section */}
+          <View style={styles.heroSection}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoEmoji}>{"\uD83D\uDCDA"}</Text>
+            </View>
+            <Text style={styles.appName}>Paadam</Text>
+            <Text style={styles.tagline}>Learning is an adventure</Text>
           </View>
 
-          {/* Form */}
-          <View style={styles.form}>
-            {/* Email Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
+          {/* Form Card */}
+          <View style={styles.formCard}>
+            <Text style={styles.formTitle}>Welcome back!</Text>
+
+            <View style={styles.form}>
+              <AppTextInput
+                label="Email"
                 placeholder="your@email.com"
-                placeholderTextColor="#ADB5BD"
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
@@ -109,86 +124,50 @@ export default function SignInScreen({
                 textContentType="emailAddress"
                 editable={!isLoading}
               />
-            </View>
 
-            {/* Password Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  style={[styles.input, styles.passwordInput]}
-                  placeholder="Enter your password"
-                  placeholderTextColor="#ADB5BD"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  textContentType="password"
-                  editable={!isLoading}
-                />
-                <TouchableOpacity
-                  style={styles.showPasswordButton}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Text style={styles.showPasswordText}>
-                    {showPassword ? "🙈" : "👁️"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+              <AppTextInput
+                label="Password"
+                isPassword
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={setPassword}
+                textContentType="password"
+                editable={!isLoading}
+              />
 
-            {/* Forgot Password */}
-            <TouchableOpacity onPress={handleForgotPassword}>
-              <Text style={styles.forgotPassword}>Forgot Password?</Text>
-            </TouchableOpacity>
-
-            {/* Sign In Button */}
-            <TouchableOpacity
-              style={[styles.signInButton, isLoading && styles.buttonDisabled]}
-              onPress={handleEmailSignIn}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.signInButtonText}>Sign In</Text>
-              )}
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Google Sign In */}
-            <TouchableOpacity
-              style={[
-                styles.googleButton,
-                isGoogleSignInLoading && styles.buttonDisabled,
-              ]}
-              onPress={handleGoogleSignIn}
-              disabled={isGoogleSignInLoading}
-            >
-              {isGoogleSignInLoading ? (
-                <ActivityIndicator color="#495057" />
-              ) : (
-                <>
-                  <Text style={styles.googleIcon}>G</Text>
-                  <Text style={styles.googleButtonText}>
-                    Continue with Google
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* Sign Up Link */}
-            <View style={styles.signUpContainer}>
-              <Text style={styles.signUpText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={onNavigateToSignUp}>
-                <Text style={styles.signUpLink}>Sign Up</Text>
+              <TouchableOpacity onPress={handleForgotPassword}>
+                <Text style={styles.forgotPassword}>Forgot Password?</Text>
               </TouchableOpacity>
+
+              <PrimaryButton
+                title="Sign In"
+                onPress={handleEmailSignIn}
+                loading={isLoading}
+                disabled={!email || !password}
+              />
+
+              {/* Divider */}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <SecondaryButton
+                icon={"\uD83D\uDD35"}
+                title="Continue with Google"
+                onPress={handleGoogleSignIn}
+                loading={isGoogleSignInLoading}
+              />
             </View>
+          </View>
+
+          {/* Sign Up Link */}
+          <View style={styles.signUpContainer}>
+            <Text style={styles.signUpText}>New here? </Text>
+            <TouchableOpacity onPress={onNavigateToSignUp}>
+              <Text style={styles.signUpLink}>Create an account</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -199,7 +178,8 @@ export default function SignInScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: colors.background,
+    overflow: "hidden",
   },
   keyboardView: {
     flex: 1,
@@ -208,134 +188,119 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 24,
-    paddingTop: 40,
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.xxxxl,
   },
-  header: {
+  // Background shapes
+  bgCircle1: {
+    position: "absolute",
+    top: -80,
+    right: -60,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: colors.coral100,
+    opacity: 0.5,
+  },
+  bgCircle2: {
+    position: "absolute",
+    bottom: 40,
+    left: -70,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: colors.teal50,
+    opacity: 0.4,
+  },
+  bgCircle3: {
+    position: "absolute",
+    top: "45%",
+    right: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.gold100,
+    opacity: 0.4,
+  },
+  // Hero
+  heroSection: {
     alignItems: "center",
-    marginBottom: 40,
+    paddingTop: spacing.xxxxl + 10,
+    paddingBottom: spacing.xxxl,
   },
-  logo: {
-    fontSize: 48,
-    marginBottom: 16,
+  logoCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.coral400,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.lg,
+    ...shadows.coralGlow,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#212529",
-    marginBottom: 8,
+  logoEmoji: {
+    fontSize: 44,
   },
-  subtitle: {
-    fontSize: 16,
-    color: "#6C757D",
+  appName: {
+    fontSize: fontSizes.display,
+    fontWeight: fontWeights.black,
+    color: colors.textPrimary,
+    letterSpacing: -1,
+  },
+  tagline: {
+    fontSize: fontSizes.base,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
+  },
+  // Form
+  formCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.xxl,
+    padding: spacing.xxl,
+    ...shadows.lg,
+  },
+  formTitle: {
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.extrabold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xl,
   },
   form: {
-    gap: 20,
-  },
-  inputContainer: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#212529",
-  },
-  input: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-    fontSize: 16,
-    color: "#212529",
-    borderWidth: 1,
-    borderColor: "#DEE2E6",
-  },
-  passwordContainer: {
-    position: "relative",
-  },
-  passwordInput: {
-    paddingRight: 60,
-  },
-  showPasswordButton: {
-    position: "absolute",
-    right: 16,
-    top: 0,
-    bottom: 0,
-    justifyContent: "center",
-    paddingHorizontal: 8,
-  },
-  showPasswordText: {
-    fontSize: 20,
+    gap: spacing.lg,
   },
   forgotPassword: {
-    fontSize: 14,
-    color: "#4CAF50",
-    fontWeight: "600",
+    fontSize: fontSizes.md,
+    color: colors.coral400,
+    fontWeight: fontWeights.semibold,
     textAlign: "right",
-  },
-  signInButton: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  signInButtonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  buttonDisabled: {
-    opacity: 0.6,
   },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 8,
+    marginVertical: spacing.xs,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#DEE2E6",
+    backgroundColor: colors.borderLight,
   },
   dividerText: {
-    color: "#ADB5BD",
-    paddingHorizontal: 16,
-    fontSize: 14,
-  },
-  googleButton: {
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "#DEE2E6",
-  },
-  googleIcon: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#4285F4",
-  },
-  googleButtonText: {
-    color: "#495057",
-    fontSize: 16,
-    fontWeight: "600",
+    color: colors.textDisabled,
+    paddingHorizontal: spacing.lg,
+    fontSize: fontSizes.md,
   },
   signUpContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 16,
+    marginTop: spacing.xxl,
   },
   signUpText: {
-    fontSize: 16,
-    color: "#6C757D",
+    fontSize: fontSizes.base,
+    color: colors.textSecondary,
   },
   signUpLink: {
-    fontSize: 16,
-    color: "#4CAF50",
-    fontWeight: "bold",
+    fontSize: fontSizes.base,
+    color: colors.coral400,
+    fontWeight: fontWeights.bold,
   },
 });

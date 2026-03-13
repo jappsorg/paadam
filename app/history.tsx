@@ -1,27 +1,17 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, StyleSheet, FlatList, Alert } from "react-native";
-import {
-  Button,
-  Text,
-  Card,
-  ActivityIndicator,
-  useTheme,
-  IconButton,
-  Divider,
-} from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { StyleSheet, FlatList, Alert, View, Pressable } from "react-native";
+import { Text } from "react-native-paper";
 import { useRouter } from "expo-router";
 import { useAuth } from "../context/AuthContext";
 import { StorageService, WorksheetAttempt } from "../services/StorageService";
+import { ScreenContainer, LoadingState, EmptyState, ErrorState } from "@/components/ui";
+import { colors, spacing, radii, fontSizes, fontWeights, shadows } from "@/theme";
 
 export default function HistoryScreen() {
   const { currentUser, isLoading: authLoading } = useAuth();
-  const theme = useTheme();
   const router = useRouter();
 
-  const [worksheetAttempts, setWorksheetAttempts] = useState<
-    WorksheetAttempt[]
-  >([]);
+  const [worksheetAttempts, setWorksheetAttempts] = useState<WorksheetAttempt[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,222 +20,257 @@ export default function HistoryScreen() {
       setLoadingHistory(true);
       setError(null);
       try {
-        const history = await StorageService.getWorksheetAttemptHistory(
-          currentUser.uid
-        );
+        const history = await StorageService.getWorksheetAttemptHistory(currentUser.uid);
         setWorksheetAttempts(history);
       } catch (err) {
-        console.error("Failed to fetch worksheet history. Error details:", err);
-        setError(
-          "Unable to load your worksheet history. Please check your connection or try again later."
-        );
+        console.error("Failed to fetch worksheet history:", err);
+        setError("Hmm, we couldn\u2019t load your worksheets. Let\u2019s try again!");
       } finally {
         setLoadingHistory(false);
       }
     } else {
-      setWorksheetAttempts([]); // Clear history if user logs out
+      setWorksheetAttempts([]);
     }
   }, [currentUser]);
 
   useEffect(() => {
-    if (!authLoading) {
-      // Only fetch if auth state is resolved
-      fetchHistory();
-    }
+    if (!authLoading) fetchHistory();
   }, [currentUser, authLoading, fetchHistory]);
 
   const handleDeleteAttempt = async (attemptId: string) => {
     if (!attemptId) return;
-    Alert.alert(
-      "Delete Attempt",
-      "Are you sure you want to delete this worksheet attempt from your history?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await StorageService.deleteWorksheetAttempt(attemptId);
-              // Refresh history
-              fetchHistory();
-            } catch (err) {
-              console.error(
-                "Failed to delete worksheet attempt. Error details:",
-                err
-              );
-              Alert.alert(
-                "Error",
-                "Unable to delete worksheet attempt. Please retry or contact support if the issue persists."
-              );
-            }
-          },
+    Alert.alert("Remove this?", "It'll be gone from your list.", [
+      { text: "Nope, keep it!", style: "cancel" },
+      {
+        text: "Yes, remove it",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await StorageService.deleteWorksheetAttempt(attemptId);
+            fetchHistory();
+          } catch (err) {
+            console.error("Failed to delete:", err);
+            Alert.alert("Error", "Couldn't delete. Please try again.");
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleViewOrAttemptWorksheet = (attempt: WorksheetAttempt) => {
-    // Navigate to the attempt screen, passing attemptId
     if (attempt.id) {
-      // We might also need to pass attempt.worksheetId (the template ID)
-      // if the attempt screen needs to fetch the master template separately.
       router.push(`/attempt/${attempt.id}`);
-    } else {
-      Alert.alert("Error", "Attempt ID is missing, cannot open.");
     }
   };
 
+  const navigateToProfile = () => router.push("/profile");
+  const navigateToWorksheet = () => router.push("/(tabs)");
+
   if (authLoading || loadingHistory) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centered}>
-          <ActivityIndicator animating={true} size="large" />
-          <Text style={styles.messageText}>Loading history...</Text>
-        </View>
-      </SafeAreaView>
+      <ScreenContainer noScroll>
+        <LoadingState message="Getting your stuff..." />
+      </ScreenContainer>
     );
   }
 
   if (!currentUser) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centered}>
-          <Text variant="headlineSmall" style={styles.messageText}>
-            Worksheet History
-          </Text>
-          <Text style={styles.messageText}>
-            Please log in to view your saved worksheets.
-          </Text>
-          <Button
-            mode="contained"
-            onPress={() => router.push("/profile")}
-            style={{ marginTop: 20 }}
-          >
-            Go to Profile
-          </Button>
-        </View>
-      </SafeAreaView>
+      <ScreenContainer noScroll>
+        <EmptyState
+          emoji={"\uD83D\uDD12"}
+          title="You're not signed in!"
+          subtitle="Sign in to see your worksheets"
+          actionLabel="Sign In"
+          onAction={navigateToProfile}
+        />
+      </ScreenContainer>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centered}>
-          <Text style={[styles.messageText, { color: theme.colors.error }]}>
-            {error}
-          </Text>
-          <Button onPress={fetchHistory}>Try Again</Button>
-        </View>
-      </SafeAreaView>
+      <ScreenContainer noScroll>
+        <ErrorState message={error} onRetry={fetchHistory} />
+      </ScreenContainer>
     );
   }
 
   if (worksheetAttempts.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centered}>
-          <Text variant="headlineSmall" style={styles.messageText}>
-            Worksheet History
-          </Text>
-          <Text style={styles.messageText}>
-            You haven't generated any worksheets yet.
-          </Text>
-          <Button
-            mode="contained"
-            onPress={() => router.push("/(tabs)")}
-            style={{ marginTop: 20 }}
-          >
-            Generate a Worksheet
-          </Button>
-        </View>
-      </SafeAreaView>
+      <ScreenContainer noScroll>
+        <EmptyState
+          emoji={"\uD83D\uDCDD"}
+          title="Nothing here yet!"
+          subtitle="Try making your first worksheet — it's fun!"
+          actionLabel="Let's make one!"
+          onAction={navigateToWorksheet}
+        />
+      </ScreenContainer>
     );
   }
 
-  const renderWorksheetItem = ({ item }: { item: WorksheetAttempt }) => (
-    <Card style={styles.card}>
-      <Card.Title
-        title={item.worksheetTitle || "Untitled Worksheet"}
-        subtitle={`Last activity: ${
-          item.lastActivityAt
-            ? new Date(item.lastActivityAt.seconds * 1000).toLocaleString()
-            : "N/A"
-        }`}
-        titleVariant="titleMedium"
-      />
-      <Card.Content>
-        {/* We might need to fetch template details (like type/difficulty) if not denormalized */}
-        {/* For now, just showing status and score from the attempt itself */}
-        <Text>Status: {item.status}</Text>
-        {item.score !== undefined && <Text>Score: {item.score}</Text>}
-        <Text>
-          Started:{" "}
-          {item.startedAt
-            ? new Date(item.startedAt.seconds * 1000).toLocaleDateString()
-            : "N/A"}
-        </Text>
-      </Card.Content>
-      <Card.Actions>
-        <Button
-          onPress={() => handleViewOrAttemptWorksheet(item)}
-          icon="play-circle-outline" // Changed icon for "attempt"
-        >
-          {item.status === "in-progress" || item.status === "paused"
-            ? "Resume"
-            : "View/Re-attempt"}
-        </Button>
-        <IconButton
-          icon="delete-outline"
-          onPress={() => item.id && handleDeleteAttempt(item.id)}
-        />
-      </Card.Actions>
-    </Card>
-  );
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case "completed": return { bg: colors.green50, text: colors.green700, label: "Finished!" };
+      case "in-progress": return { bg: colors.gold50, text: colors.gold700, label: "Still working" };
+      case "paused": return { bg: colors.orange50, text: colors.orange600, label: "On hold" };
+      default: return { bg: colors.sand100, text: colors.textTertiary, label: status };
+    }
+  };
+
+  const renderWorksheetItem = ({ item }: { item: WorksheetAttempt }) => {
+    const statusStyle = getStatusStyle(item.status);
+    return (
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        onPress={() => handleViewOrAttemptWorksheet(item)}
+      >
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {item.worksheetTitle || "Untitled Worksheet"}
+          </Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+            <Text style={[styles.statusText, { color: statusStyle.text }]}>
+              {statusStyle.label}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.cardMeta}>
+          {item.score !== undefined && (
+            <Text style={styles.scoreText}>
+              Score: <Text style={styles.scoreValue}>{item.score}%</Text>
+            </Text>
+          )}
+          <Text style={styles.dateText}>
+            {item.lastActivityAt
+              ? new Date(item.lastActivityAt.seconds * 1000).toLocaleDateString()
+              : "N/A"}
+          </Text>
+        </View>
+
+        <View style={styles.cardActions}>
+          <Text style={styles.actionText}>
+            {item.status === "in-progress" || item.status === "paused"
+              ? "Keep going \u203A"
+              : "Look at it \u203A"}
+          </Text>
+          <Pressable
+            onPress={() => item.id && handleDeleteAttempt(item.id)}
+            style={styles.deleteButton}
+          >
+            <Text style={styles.deleteText}>{"\uD83D\uDDD1\uFE0F"}</Text>
+          </Pressable>
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
-      <Text variant="headlineMedium" style={styles.title}>
-        Your Worksheet Attempts
-      </Text>
+    <ScreenContainer noScroll>
+      <View style={styles.header}>
+        <Text style={styles.title}>My Worksheets</Text>
+        <Text style={styles.subtitle}>{worksheetAttempts.length} so far — nice!</Text>
+      </View>
       <FlatList
         data={worksheetAttempts}
         renderItem={renderWorksheetItem}
         keyExtractor={(item) => item.id || Math.random().toString()}
         contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <Divider style={{ marginVertical: 8 }} />}
+        ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
       />
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  messageText: {
-    textAlign: "center",
-    marginBottom: 10,
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.lg,
   },
   title: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
+    fontSize: fontSizes.xxxl,
+    fontWeight: fontWeights.extrabold,
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontSize: fontSizes.md,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
   },
   listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xxl,
   },
   card: {
-    marginVertical: 8,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
+    ...shadows.card,
+  },
+  cardPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.98 }],
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  cardTitle: {
+    flex: 1,
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
+    marginRight: spacing.sm,
+  },
+  statusBadge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xxs + 1,
+    borderRadius: radii.pill,
+  },
+  statusText: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
+  },
+  cardMeta: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: spacing.md,
+  },
+  scoreText: {
+    fontSize: fontSizes.md,
+    color: colors.textSecondary,
+  },
+  scoreValue: {
+    fontWeight: fontWeights.bold,
+    color: colors.teal500,
+  },
+  dateText: {
+    fontSize: fontSizes.sm,
+    color: colors.textTertiary,
+  },
+  cardActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+    paddingTop: spacing.sm,
+  },
+  actionText: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold,
+    color: colors.coral400,
+  },
+  deleteButton: {
+    padding: spacing.xs,
+  },
+  deleteText: {
+    fontSize: 18,
   },
 });

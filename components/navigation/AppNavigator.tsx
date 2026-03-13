@@ -9,6 +9,7 @@
 
 import React, { useState, useEffect } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { colors } from "@/theme";
 import { useAuth } from "../../context/AuthContext";
 import SignInScreen from "../auth/SignInScreen";
 import SignUpScreen from "../auth/SignUpScreen";
@@ -36,7 +37,7 @@ export default function AppNavigator({ children }: AppNavigatorProps) {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -90,6 +91,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F8F9FA",
+    backgroundColor: colors.background,
   },
 });

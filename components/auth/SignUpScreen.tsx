@@ -9,16 +9,27 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
+import {
+  AppTextInput,
+  PrimaryButton,
+  SecondaryButton,
+} from "@/components/ui";
+import {
+  colors,
+  spacing,
+  radii,
+  fontSizes,
+  fontWeights,
+  shadows,
+} from "@/theme";
 
 interface SignUpScreenProps {
   onSignUpSuccess: () => void;
@@ -37,28 +48,15 @@ export default function SignUpScreen({
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const validateForm = (): string | null => {
-    if (!displayName.trim()) {
-      return "Please enter your name";
-    }
-    if (!email.trim()) {
-      return "Please enter your email";
-    }
-    if (!email.includes("@")) {
-      return "Please enter a valid email address";
-    }
-    if (password.length < 6) {
-      return "Password must be at least 6 characters";
-    }
-    if (password !== confirmPassword) {
-      return "Passwords do not match";
-    }
-    if (!agreedToTerms) {
-      return "Please agree to the Terms of Service and Privacy Policy";
-    }
+    if (!displayName.trim()) return "Please enter your name";
+    if (!email.trim()) return "Please enter your email";
+    if (!email.includes("@")) return "Please enter a valid email address";
+    if (password.length < 6) return "Password must be at least 6 characters";
+    if (password !== confirmPassword) return "Passwords do not match";
+    if (!agreedToTerms) return "Please agree to the Terms of Service and Privacy Policy";
     return null;
   };
 
@@ -89,13 +87,9 @@ export default function SignUpScreen({
 
   const handleGoogleSignUp = async () => {
     if (!agreedToTerms) {
-      Alert.alert(
-        "Terms Required",
-        "Please agree to the Terms of Service and Privacy Policy",
-      );
+      Alert.alert("Terms Required", "Please agree to the Terms of Service and Privacy Policy");
       return;
     }
-
     try {
       await signInWithGoogle();
       onSignUpSuccess();
@@ -109,6 +103,9 @@ export default function SignUpScreen({
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.bgCircle1} />
+      <View style={styles.bgCircle2} />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
@@ -118,24 +115,21 @@ export default function SignUpScreen({
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.logo}>📚 Paadam</Text>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>
-              Start your child's learning journey
-            </Text>
+          {/* Hero */}
+          <View style={styles.heroSection}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoEmoji}>{"\uD83C\uDF1F"}</Text>
+            </View>
+            <Text style={styles.heroTitle}>Join the Adventure</Text>
+            <Text style={styles.heroSubtitle}>Create your family's learning space</Text>
           </View>
 
-          {/* Form */}
-          <View style={styles.form}>
-            {/* Name Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Your Name</Text>
-              <TextInput
-                style={styles.input}
+          {/* Form Card */}
+          <View style={styles.formCard}>
+            <View style={styles.form}>
+              <AppTextInput
+                label="Your Name"
                 placeholder="Enter your full name"
-                placeholderTextColor="#ADB5BD"
                 value={displayName}
                 onChangeText={setDisplayName}
                 autoCapitalize="words"
@@ -143,15 +137,10 @@ export default function SignUpScreen({
                 textContentType="name"
                 editable={!isLoading}
               />
-            </View>
 
-            {/* Email Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
+              <AppTextInput
+                label="Email"
                 placeholder="your@email.com"
-                placeholderTextColor="#ADB5BD"
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
@@ -160,116 +149,76 @@ export default function SignUpScreen({
                 textContentType="emailAddress"
                 editable={!isLoading}
               />
-            </View>
 
-            {/* Password Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  style={[styles.input, styles.passwordInput]}
-                  placeholder="At least 6 characters"
-                  placeholderTextColor="#ADB5BD"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  textContentType="newPassword"
-                  editable={!isLoading}
-                />
-                <TouchableOpacity
-                  style={styles.showPasswordButton}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Text style={styles.showPasswordText}>
-                    {showPassword ? "🙈" : "👁️"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Confirm Password Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Confirm Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Re-enter your password"
-                placeholderTextColor="#ADB5BD"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showPassword}
+              <AppTextInput
+                label="Password"
+                placeholder="At least 6 characters"
+                isPassword
+                value={password}
+                onChangeText={setPassword}
                 textContentType="newPassword"
                 editable={!isLoading}
               />
-            </View>
 
-            {/* Terms Agreement */}
-            <TouchableOpacity
-              style={styles.checkboxContainer}
-              onPress={() => setAgreedToTerms(!agreedToTerms)}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  agreedToTerms && styles.checkboxChecked,
-                ]}
+              <AppTextInput
+                label="Confirm Password"
+                placeholder="Re-enter your password"
+                isPassword
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                textContentType="newPassword"
+                editable={!isLoading}
+              />
+
+              {/* Terms */}
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setAgreedToTerms(!agreedToTerms)}
+                activeOpacity={0.7}
               >
-                {agreedToTerms && <Text style={styles.checkmark}>✓</Text>}
-              </View>
-              <Text style={styles.checkboxLabel}>
-                I agree to the <Text style={styles.link}>Terms of Service</Text>{" "}
-                and <Text style={styles.link}>Privacy Policy</Text>
-              </Text>
-            </TouchableOpacity>
-
-            {/* Sign Up Button */}
-            <TouchableOpacity
-              style={[styles.signUpButton, isLoading && styles.buttonDisabled]}
-              onPress={handleEmailSignUp}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.signUpButtonText}>Create Account</Text>
-              )}
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Google Sign Up */}
-            <TouchableOpacity
-              style={[
-                styles.googleButton,
-                isGoogleSignInLoading && styles.buttonDisabled,
-              ]}
-              onPress={handleGoogleSignUp}
-              disabled={isGoogleSignInLoading}
-            >
-              {isGoogleSignInLoading ? (
-                <ActivityIndicator color="#495057" />
-              ) : (
-                <>
-                  <Text style={styles.googleIcon}>G</Text>
-                  <Text style={styles.googleButtonText}>
-                    Continue with Google
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* Sign In Link */}
-            <View style={styles.signInContainer}>
-              <Text style={styles.signInText}>Already have an account? </Text>
-              <TouchableOpacity onPress={onNavigateToSignIn}>
-                <Text style={styles.signInLink}>Sign In</Text>
+                <View
+                  style={[
+                    styles.checkbox,
+                    agreedToTerms && styles.checkboxChecked,
+                  ]}
+                >
+                  {agreedToTerms && <Text style={styles.checkmark}>{"\u2713"}</Text>}
+                </View>
+                <Text style={styles.checkboxLabel}>
+                  I agree to the <Text style={styles.link}>Terms of Service</Text>{" "}
+                  and <Text style={styles.link}>Privacy Policy</Text>
+                </Text>
               </TouchableOpacity>
+
+              <PrimaryButton
+                title="Create Account"
+                onPress={handleEmailSignUp}
+                loading={isLoading}
+                disabled={!agreedToTerms}
+                variant="teal"
+              />
+
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <SecondaryButton
+                icon={"\uD83D\uDD35"}
+                title="Continue with Google"
+                onPress={handleGoogleSignUp}
+                loading={isGoogleSignInLoading}
+              />
             </View>
+          </View>
+
+          {/* Sign In Link */}
+          <View style={styles.signInContainer}>
+            <Text style={styles.signInText}>Already have an account? </Text>
+            <TouchableOpacity onPress={onNavigateToSignIn}>
+              <Text style={styles.signInLink}>Sign In</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -280,174 +229,127 @@ export default function SignUpScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: colors.background,
+    overflow: "hidden",
   },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
+  keyboardView: { flex: 1 },
+  scrollView: { flex: 1 },
   content: {
-    padding: 24,
-    paddingTop: 20,
-    paddingBottom: 40,
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.xxxxl,
   },
-  header: {
-    alignItems: "center",
-    marginBottom: 32,
-  },
-  logo: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#212529",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#6C757D",
-  },
-  form: {
-    gap: 20,
-  },
-  inputContainer: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#212529",
-  },
-  input: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-    fontSize: 16,
-    color: "#212529",
-    borderWidth: 1,
-    borderColor: "#DEE2E6",
-  },
-  passwordContainer: {
-    position: "relative",
-  },
-  passwordInput: {
-    paddingRight: 60,
-  },
-  showPasswordButton: {
+  bgCircle1: {
     position: "absolute",
-    right: 16,
-    top: 0,
-    bottom: 0,
+    top: -60,
+    left: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: colors.teal50,
+    opacity: 0.5,
+  },
+  bgCircle2: {
+    position: "absolute",
+    bottom: 60,
+    right: -60,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: colors.violet50,
+    opacity: 0.4,
+  },
+  heroSection: {
+    alignItems: "center",
+    paddingTop: spacing.xxxl,
+    paddingBottom: spacing.xxl,
+  },
+  logoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.teal400,
     justifyContent: "center",
-    paddingHorizontal: 8,
+    alignItems: "center",
+    marginBottom: spacing.lg,
+    ...shadows.tealGlow,
   },
-  showPasswordText: {
-    fontSize: 20,
+  logoEmoji: { fontSize: 40 },
+  heroTitle: {
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.extrabold,
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
   },
+  heroSubtitle: {
+    fontSize: fontSizes.base,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
+  },
+  formCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.xxl,
+    padding: spacing.xxl,
+    ...shadows.lg,
+  },
+  form: { gap: spacing.lg },
   checkboxContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
-    marginTop: 4,
+    gap: spacing.md,
   },
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: radii.xs,
     borderWidth: 2,
-    borderColor: "#DEE2E6",
-    backgroundColor: "#FFFFFF",
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: "#4CAF50",
-    borderColor: "#4CAF50",
+    backgroundColor: colors.teal400,
+    borderColor: colors.teal400,
   },
   checkmark: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "bold",
+    color: colors.textOnPrimary,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.bold,
   },
   checkboxLabel: {
     flex: 1,
-    fontSize: 14,
-    color: "#495057",
+    fontSize: fontSizes.md,
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   link: {
-    color: "#4CAF50",
-    fontWeight: "600",
-  },
-  signUpButton: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  signUpButtonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  buttonDisabled: {
-    opacity: 0.6,
+    color: colors.teal500,
+    fontWeight: fontWeights.semibold,
   },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 8,
+    marginVertical: spacing.xs,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#DEE2E6",
-  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.borderLight },
   dividerText: {
-    color: "#ADB5BD",
-    paddingHorizontal: 16,
-    fontSize: 14,
-  },
-  googleButton: {
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "#DEE2E6",
-  },
-  googleIcon: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#4285F4",
-  },
-  googleButtonText: {
-    color: "#495057",
-    fontSize: 16,
-    fontWeight: "600",
+    color: colors.textDisabled,
+    paddingHorizontal: spacing.lg,
+    fontSize: fontSizes.md,
   },
   signInContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 16,
+    marginTop: spacing.xxl,
   },
   signInText: {
-    fontSize: 16,
-    color: "#6C757D",
+    fontSize: fontSizes.base,
+    color: colors.textSecondary,
   },
   signInLink: {
-    fontSize: 16,
-    color: "#4CAF50",
-    fontWeight: "bold",
+    fontSize: fontSizes.base,
+    color: colors.teal500,
+    fontWeight: fontWeights.bold,
   },
 });

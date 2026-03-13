@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet, View, ScrollView } from "react-native";
 import { ActivityIndicator, Button, Card, Text } from "react-native-paper";
 import { PdfService, PdfGenerationOptions } from "../services/PdfService";
+import { colors, spacing } from "@/theme";
 
 interface WorksheetPreviewProps {
   title: string;
@@ -27,7 +28,7 @@ export const WorksheetPreview: React.FC<WorksheetPreviewProps> = ({
       const options: PdfGenerationOptions = {
         title,
         content: htmlContent,
-        headerColor: "#4CAF50",
+        headerColor: colors.success,
         footerText: `Generated on ${new Date().toLocaleDateString()}`,
       };
 
@@ -90,19 +91,19 @@ const styles = StyleSheet.create({
   },
   contentScroll: {
     maxHeight: 400,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
   button: {
-    marginHorizontal: 8,
+    marginHorizontal: spacing.sm,
   },
   error: {
-    color: "red",
+    color: colors.error,
     textAlign: "center",
-    marginVertical: 8,
+    marginVertical: spacing.sm,
   },
 });

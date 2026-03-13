@@ -76,3 +76,56 @@ Initial UX review conducted 2026-03-12 covering six screens/components.
 - Color-coded review cards (green/red border) on results are immediately interpretable
 - XP + streak reward section on results is well-structured for game-style motivation
 - Max character messages are consistently the most child-appropriate tone
+
+---
+
+## Session 2 findings (2026-03-12): Onboarding Preferences, Theme Picker, Adventure Mode
+
+### PreferencesSetup — parent-facing screen
+- Parent framing ("What does [name] love?") is clear and intuitive for a parent; no confusion there
+- "Any subjects they find tricky?" is natural parent language — good phrasing
+- Subtitle "Optional — helps us personalize" uses "personalize" which is fine for a parent but would be opaque to an 8-year-old if a child ever encountered it
+- "Pick up to 3 favorites" is perfectly clear for a parent
+- SUBJECT_OPTIONS include "Multiplication", "Division", "Fractions", "Geometry", "Measurement" — all appropriate for a parent to recognize
+- Emoji theme cards (100x100, 32px emoji, fontSize.sm label) are visually appealing; emoji size is strong
+- 3-item cap on theme selection has NO visible feedback — parent doesn't know WHY the 4th card stopped responding; no "you've picked 3!" indicator or visual counter
+- Button label changes between "Continue" and "Skip for now" based on selection state — clever and clear for a parent
+- No visible selection count ("2 of 3 chosen") to guide the parent toward completing the step
+- Screen is parent-facing but lives inside an onboarding flow that a child could be watching — no "hand this to your grown-up" framing
+
+### ThemePickerScreen — child-facing
+- "Pick Your Next Adventure!" is excellent — direct, exciting, age-appropriate, all on one line
+- "{character} is ready to explore with you" is warm and creates anticipation — strong
+- Card titles computed as "{theme.charAt(0).toUpperCase() + theme.slice(1)} Adventure" — e.g., "Cooking Adventure" — simple and clear for a 3rd grader
+- "Tap to start!" is perfect — short, imperative, immediately actionable
+- 48px emoji on card is excellent tap target anchor and emotional hook
+- Only 2-3 cards shown at once — ideal; avoids choice overload
+- "Adventure" word used correctly — 3 syllables but kids know this word from books/TV
+- Cards are vertically stacked (gap: spacing.lg) — good for small hands, no accidental mis-taps
+- Problem: cardSubtitle "Tap to start!" uses fontSizes.sm and colors.textSecondary — low contrast, likely too small for a child to notice, though the card itself is obviously tappable
+- No back button or "I don't want any of these" escape hatch visible in JSX — child is stuck if none of the themes appeal
+
+### Adventure Mode toggle (WorksheetGeneratorScreen)
+- Toggle labels are "Manual" vs "Start Adventure!" — the asymmetry is jarring: one is flat adult vocabulary, the other is exciting child vocabulary. A child will obviously prefer "Start Adventure!" but won't know what "Manual" means or why it's even there
+- "Beat {n} of {n}" arc progress text — "Beat" used as a noun/game term is actually pretty good for a game-literate 8-year-old; FIFA/Minecraft/Roblox kids understand "beat" in game context. However it lacks a visual label context — a child might not know "beat" means "chapter" here without surrounding copy
+- Arc progress bar is rendered (height 8, primary fill) — this is a strong visual affordance; the bar is more readable than the "Beat X of Y" text
+- arcProgressText uses fontSizes.xs — very small; a child will ignore this text and rely on the bar only
+- "Continue Adventure!" / "Start My Adventure!" button labels are excellent — clear, exciting, age-appropriate
+- "I want a different adventure!" pivot button — the phrasing is perfect for a child's voice; feels like something a kid would literally say. Excellent escape hatch copy
+- PROBLEM: pivot button uses textDecorationLine: "underline" and fontSizes.sm with colors.textSecondary — it looks like a footnote, not an interactive button. A child will not identify it as tappable. It needs to look like a real button with a border or background
+- narrativeIntro text rendered from adaptiveResult.worksheet.narrativeIntro — quality depends entirely on AI-generated content; no static fallback visible. If narrative is verbose or uses adult vocabulary it will be skipped by kids
+- characterDialogue.greeting displayed in narrativeCharacter style — this is good placement, but font is only fontSizes.md — should be larger to feel like a character "speaking"
+- Error fallback: "Adventure generation failed. Try manual mode." — "manual mode" is adult language; a child cannot act on this
+- Manual mode error: "Failed to generate worksheet. Please try again." — at least this has "try again" which is actionable, but still adult phrasing
+
+### Vocabulary red flags in these 3 screens
+- "Manual" (toggle label) — not child vocabulary; kids would say "do it myself"
+- "Adventure generation failed. Try manual mode." — double failure: "generation" + "manual mode"
+- arcProgressText font too small (fontSizes.xs) for a child to read
+- switchButtonText visually indistinguishable from fine print — child won't know to tap it
+
+### What's working well in these screens
+- ThemePickerScreen is the strongest child-facing screen in the app so far — minimal text, big emojis, clear action, theme colors on card borders
+- "I want a different adventure!" is the best escape hatch copy in the app
+- "Start My Adventure!" / "Continue Adventure!" button labels set the right tone
+- Parent preference screen question phrasing is natural and clear for adults

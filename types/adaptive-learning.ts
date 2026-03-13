@@ -353,6 +353,9 @@ export interface LearningSession {
   // AGENT MEMORY SUMMARY
   agentMemorySummary: string | null;
 
+  // Adaptive pipeline
+  theme?: string; // narrative theme for this session (set by adaptive pipeline)
+
   // Metadata
   createdAt: Date;
   updatedAt: Date;

@@ -4,8 +4,6 @@ import {
   Button,
   Text,
   Card,
-  ActivityIndicator,
-  useTheme,
   TextInput,
   ProgressBar,
 } from "react-native-paper";
@@ -24,6 +22,9 @@ import CharacterCompanion, {
   CompanionMood,
 } from "../../components/CharacterCompanion";
 import { studentProfileService } from "../../services/StudentProfileService";
+import { LoadingState, ErrorState, Confetti } from "@/components/ui";
+import { useAppTheme } from "@/theme";
+import { colors, spacing, radii, fontSizes, fontWeights } from "@/theme";
 
 type UserAnswerInput = {
   questionId: string;
@@ -35,7 +36,7 @@ export default function AttemptWorksheetScreen() {
     userWorksheetId: string;
   }>();
   const { currentUser, isLoading: authLoading, selectedStudent, refreshStudentProfiles } = useAuth();
-  const theme = useTheme();
+  const theme = useAppTheme();
   const router = useRouter();
 
   const [worksheetAttempt, setWorksheetAttempt] =
@@ -267,8 +268,7 @@ export default function AttemptWorksheetScreen() {
   if (isLoading || authLoading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" />
-        <Text>Loading worksheet...</Text>
+        <LoadingState emoji="📝" message="Loading your worksheet..." />
       </SafeAreaView>
     );
   }
@@ -276,8 +276,7 @@ export default function AttemptWorksheetScreen() {
   if (error) {
     return (
       <SafeAreaView style={styles.centered}>
-        <Text style={{ color: theme.colors.error }}>{error}</Text>
-        <Button onPress={loadWorksheet}>Try Again</Button>
+        <ErrorState message={error} onRetry={loadWorksheet} />
       </SafeAreaView>
     );
   }
@@ -301,6 +300,8 @@ export default function AttemptWorksheetScreen() {
         style={[styles.container, { backgroundColor: theme.colors.background }]}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
+          <Confetti trigger={showResults && finalScore >= 70} />
+
           <CharacterCompanion
             characterId={characterId}
             mood={finalScore >= 70 ? "celebrating" : "encouraging"}
@@ -505,139 +506,139 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: spacing.xl,
   },
   card: {
     // No specific margin here, handled by scrollContent padding
   },
   progressBar: {
-    marginHorizontal: 16,
-    marginVertical: 10,
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.md,
   },
   questionContent: {
-    paddingVertical: 20,
+    paddingVertical: spacing.xl,
   },
   questionText: {
-    marginBottom: 20,
-    lineHeight: 30, // Adjust for better readability
+    marginBottom: spacing.xl,
+    lineHeight: 30,
   },
   answerInput: {
-    marginTop: 10,
+    marginTop: spacing.md,
   },
   actions: {
     justifyContent: "space-between",
-    padding: 16,
+    padding: spacing.lg,
   },
   rewardsContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: 24,
-    paddingVertical: 12,
-    backgroundColor: "#FFFDE7",
-    borderRadius: 12,
-    marginTop: 4,
+    gap: spacing.xxl,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.gold100,
+    borderRadius: radii.md,
+    marginTop: spacing.xs,
   },
   rewardItem: {
     alignItems: "center",
-    gap: 4,
+    gap: spacing.xs,
   },
   rewardEmoji: {
-    fontSize: 24,
+    fontSize: fontSizes.xxl,
   },
   rewardText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#334155",
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold,
+    color: colors.plum700,
   },
   levelUpText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#4CAF50",
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: colors.correctBorder,
   },
   scoreSummary: {
     alignItems: "center",
-    paddingVertical: 16,
-    marginBottom: 8,
+    paddingVertical: spacing.lg,
+    marginBottom: spacing.sm,
   },
   scoreTitle: {
     textAlign: "center",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   scoreValue: {
     textAlign: "center",
-    fontWeight: "800",
-    color: "#4A90E2",
-    marginBottom: 8,
+    fontWeight: fontWeights.extrabold,
+    color: colors.primary,
+    marginBottom: spacing.sm,
   },
   reviewTitle: {
-    marginBottom: 12,
-    fontWeight: "700",
+    marginBottom: spacing.md,
+    fontWeight: fontWeights.bold,
   },
   reviewCard: {
-    marginBottom: 12,
-    borderRadius: 12,
+    marginBottom: spacing.md,
+    borderRadius: radii.md,
     borderLeftWidth: 4,
   },
   reviewCardCorrect: {
-    borderLeftColor: "#4CAF50",
-    backgroundColor: "#F1F8E9",
+    borderLeftColor: colors.correctBorder,
+    backgroundColor: colors.correctBackground,
   },
   reviewCardIncorrect: {
-    borderLeftColor: "#FF5252",
-    backgroundColor: "#FFF3E0",
+    borderLeftColor: colors.incorrectBorder,
+    backgroundColor: colors.incorrectBackground,
   },
   reviewHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   reviewIndex: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#64748B",
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
+    color: colors.textTertiary,
   },
   reviewStatus: {
-    fontSize: 18,
+    fontSize: fontSizes.lg,
   },
   reviewQuestion: {
-    marginBottom: 10,
+    marginBottom: spacing.md,
     lineHeight: 24,
   },
   reviewAnswers: {
-    gap: 4,
+    gap: spacing.xs,
   },
   reviewAnswer: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold,
   },
   answerCorrect: {
-    color: "#2E7D32",
+    color: colors.correctText,
   },
   answerIncorrect: {
-    color: "#C62828",
+    color: colors.incorrectText,
   },
   correctAnswer: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#2E7D32",
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold,
+    color: colors.correctText,
   },
   explanation: {
-    marginTop: 8,
-    fontSize: 14,
-    color: "#37474F",
+    marginTop: spacing.sm,
+    fontSize: fontSizes.md,
+    color: colors.plum800,
     lineHeight: 21,
   },
   resultActions: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: 16,
-    paddingVertical: 20,
+    gap: spacing.lg,
+    paddingVertical: spacing.xl,
   },
 });
