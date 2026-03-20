@@ -1,11 +1,12 @@
 import React from "react";
-import { StyleSheet, ScrollView, View, TouchableOpacity, Alert, Pressable } from "react-native";
+import { StyleSheet, ScrollView, View, TouchableOpacity, Alert, Pressable, Platform } from "react-native";
 import { Text } from "react-native-paper";
 import { ScreenContainer } from "@/components/ui";
 import { colors, spacing, radii, shadows, fontSizes, fontWeights } from "@/theme";
 import { WorksheetCard, worksheetTemplates } from "../components/WorksheetCard";
 import { useAuth } from "../context/AuthContext";
 import { PlayerStats } from "../components/PlayerStats";
+import { SkillJourney } from "@/components/home/SkillJourney";
 
 export default function HomeScreen() {
   const {
@@ -16,25 +17,36 @@ export default function HomeScreen() {
     setSelectedStudent,
   } = useAuth();
 
-  const handleSignOut = () => {
-    Alert.alert(
-      "Leaving already?",
-      "Are you sure you want to go?",
-      [
-        { text: "Nope, stay!", style: "cancel" },
-        {
-          text: "Yep, bye!",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await signOut();
-            } catch (error) {
-              console.error("[HomeScreen] Sign out error:", error);
-            }
+  const handleSignOut = async () => {
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm("Leaving already? Are you sure you want to go?");
+      if (confirmed) {
+        try {
+          await signOut();
+        } catch (error) {
+          console.error("[HomeScreen] Sign out error:", error);
+        }
+      }
+    } else {
+      Alert.alert(
+        "Leaving already?",
+        "Are you sure you want to go?",
+        [
+          { text: "Nope, stay!", style: "cancel" },
+          {
+            text: "Yep, bye!",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await signOut();
+              } catch (error) {
+                console.error("[HomeScreen] Sign out error:", error);
+              }
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   return (
@@ -94,6 +106,14 @@ export default function HomeScreen() {
 
       {/* Player Stats */}
       {selectedStudent && <PlayerStats student={selectedStudent} />}
+
+      {/* Skill Journey */}
+      {selectedStudent && (
+        <SkillJourney
+          skills={(selectedStudent as any).skillMastery || (selectedStudent as any).skillsMastery || {}}
+          grade={selectedStudent.grade}
+        />
+      )}
 
       {/* Worksheet Section */}
       <View style={styles.worksheetSection}>

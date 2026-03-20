@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { createAnthropic } from "@ai-sdk/anthropic";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { z } from "zod";
 import { signalAggregatorService } from "@/services/SignalAggregatorService";
 import { narrativeArcService } from "@/services/NarrativeArcService";
@@ -10,10 +10,10 @@ import {
   PivotDecision,
   PIVOT_THRESHOLDS,
 } from "@/types/adaptive-pipeline";
-import { ANTHROPIC_MODELS } from "@/constants";
+import { LLM_MODELS } from "@/constants";
 
-const anthropicProvider = createAnthropic({
-  apiKey: process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY,
+const openrouter = createOpenRouter({
+  apiKey: process.env.EXPO_PUBLIC_OPENROUTER_API_KEY,
 });
 
 // Zod schema for Planner output
@@ -170,6 +170,12 @@ export class AdaptivePlannerService {
       lines.push(`\nPast arcs: ${context.arcHistory.map((a) => `${a.title} (${a.status})`).join(", ")}`);
     }
 
+    // Parent observations
+    if (context.parentFeedback && context.parentFeedback.length > 0) {
+      lines.push(`\nParent observations (incorporate these into your planning):`);
+      context.parentFeedback.forEach((note) => lines.push(`  - "${note}"`));
+    }
+
     return lines.join("\n");
   }
 
@@ -177,7 +183,7 @@ export class AdaptivePlannerService {
     const studentSummary = this.buildPlannerPrompt(context);
 
     const { object } = await generateObject({
-      model: anthropicProvider(ANTHROPIC_MODELS.CLAUDE_HAIKU),
+      model: openrouter(LLM_MODELS.CLAUDE_HAIKU),
       schema: LearningPlanSchema,
       messages: [
         {
@@ -206,7 +212,7 @@ Rules:
 
   async generateWorksheet(plan: LearningPlan): Promise<AdaptiveWorksheet> {
     const { object } = await generateObject({
-      model: anthropicProvider(ANTHROPIC_MODELS.CLAUDE_SONNET),
+      model: openrouter(LLM_MODELS.CLAUDE_SONNET),
       schema: AdaptiveWorksheetSchema,
       messages: [
         {

@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // User profiles — owner only
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Theme affinities subcollection
+      match /theme_affinities/{theme} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Narrative arcs subcollection
+      match /narrative_arcs/{arcId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Parent feedback notes
+      match /parent_notes/{noteId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Student profiles — parent must be authenticated
+    match /students/{studentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Worksheet templates — creator can read/write, authenticated can create
+    match /worksheets/{templateId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if request.auth != null
+        && resource.data.createdBy == request.auth.uid;
+    }
+
+    // Worksheet attempts — owner only
+    match /worksheetAttempts/{attemptId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // Learning sessions — authenticated users
+    match /sessions/{sessionId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Deleted sessions (audit trail for Right to Forget)
+    match /deleted_sessions/{sessionId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Guest access — authenticated users
+    match /guest_access/{accessId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // PII sanitization logs — write only for compliance
+    match /pii_sanitization_logs/{logId} {
+      allow create: if request.auth != null;
+    }
+  }
+}

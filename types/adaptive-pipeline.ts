@@ -88,6 +88,7 @@ export interface StudentContext {
   misconceptions: string[];
   learningVelocity: string;
   arcHistory: ArcSummary[];
+  parentFeedback?: string[];
 }
 
 // --- Learning Plan (output of Planner, input to Generator) ---

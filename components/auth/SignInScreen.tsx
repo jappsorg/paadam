@@ -46,10 +46,30 @@ export default function SignInScreen({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const friendlyAuthError = (message: string): string => {
+    if (message.includes("auth/invalid-credential")) return "Hmm, that email or password doesn't look right. Try again!";
+    if (message.includes("auth/user-not-found")) return "We couldn't find an account with that email.";
+    if (message.includes("auth/wrong-password")) return "That password doesn't match. Try again!";
+    if (message.includes("auth/too-many-requests")) return "Too many tries! Please wait a moment and try again.";
+    if (message.includes("auth/network-request-failed")) return "Looks like you're offline. Check your connection!";
+    return message;
+  };
+
+  const showError = (title: string, message: string) => {
+    const friendly = friendlyAuthError(message);
+    if (Platform.OS === "web") {
+      setError(friendly);
+    } else {
+      Alert.alert(title, friendly);
+    }
+  };
 
   const handleEmailSignIn = async () => {
+    setError(null);
     if (!email.trim() || !password) {
-      Alert.alert("Error", "Please enter email and password");
+      showError("Error", "Please enter email and password");
       return;
     }
 
@@ -57,10 +77,10 @@ export default function SignInScreen({
     try {
       await signInWithEmail(email.trim(), password);
       onSignInSuccess();
-    } catch (error) {
-      Alert.alert(
+    } catch (err) {
+      showError(
         "Sign In Failed",
-        error instanceof Error ? error.message : "An error occurred",
+        err instanceof Error ? err.message : "An error occurred",
       );
     } finally {
       setIsLoading(false);
@@ -68,19 +88,20 @@ export default function SignInScreen({
   };
 
   const handleGoogleSignIn = async () => {
+    setError(null);
     try {
       await signInWithGoogle();
       onSignInSuccess();
-    } catch (error) {
-      Alert.alert(
+    } catch (err) {
+      showError(
         "Google Sign In Failed",
-        error instanceof Error ? error.message : "An error occurred",
+        err instanceof Error ? err.message : "An error occurred",
       );
     }
   };
 
   const handleForgotPassword = () => {
-    Alert.alert("Reset Password", "Password reset functionality coming soon!");
+    showError("Reset Password", "Password reset functionality coming soon!");
   };
 
   return (
@@ -138,6 +159,12 @@ export default function SignInScreen({
               <TouchableOpacity onPress={handleForgotPassword}>
                 <Text style={styles.forgotPassword}>Forgot Password?</Text>
               </TouchableOpacity>
+
+              {error && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              )}
 
               <PrimaryButton
                 title="Sign In"
@@ -273,6 +300,17 @@ const styles = StyleSheet.create({
     color: colors.coral400,
     fontWeight: fontWeights.semibold,
     textAlign: "right",
+  },
+  errorContainer: {
+    backgroundColor: colors.coral100,
+    padding: spacing.md,
+    borderRadius: radii.lg,
+  },
+  errorText: {
+    color: colors.coral400,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    textAlign: "center",
   },
   divider: {
     flexDirection: "row",

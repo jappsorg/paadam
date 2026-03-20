@@ -126,8 +126,13 @@ export default function WorksheetGeneratorScreen() {
       setError(null);
 
       // Check if student needs discovery quest (< 3 worksheets completed)
-      const profileData = await studentProfileService.getProfile(studentId);
-      const profile = profileData as (typeof profileData & { worksheetsCompleted?: number; favoriteThemes?: string[] }) | null;
+      let profile: { worksheetsCompleted?: number; favoriteThemes?: string[]; grade?: string } | null = null;
+      try {
+        const profileData = await studentProfileService.getProfile(studentId);
+        profile = profileData as (typeof profileData & { worksheetsCompleted?: number; favoriteThemes?: string[] }) | null;
+      } catch (profileErr) {
+        console.warn("[WorksheetGenerator] Could not load student profile, using defaults:", profileErr);
+      }
       const worksheetsCompleted = profile?.worksheetsCompleted ?? 0;
       const phase = discoveryQuestService.getDiscoveryPhase(worksheetsCompleted);
 
@@ -156,33 +161,48 @@ export default function WorksheetGeneratorScreen() {
         title: result.plan.arcTitle,
       });
 
-      // Start session with theme for signal tracking
-      await sessionService.startSession(studentId, selectedStudent?.selectedCharacterId || "ada", result.plan.theme);
+      // Convert to standard worksheet format for preview
+      const adaptiveQuestions = result.worksheet.questions.map((q, i) => ({
+        id: `q_${i}`,
+        question: q.question,
+        answer: q.answer,
+        explanation: q.explanation,
+      }));
 
-      // Convert adaptive worksheet to existing format and save
+      // Set worksheet for preview immediately so it shows regardless of save success
+      setWorksheet({
+        title: result.worksheet.title,
+        questions: adaptiveQuestions,
+      } as any);
+
+      // Try to start session and save to Firestore
+      try {
+        await sessionService.startSession(studentId, selectedStudent?.selectedCharacterId || "ada", result.plan.theme);
+      } catch (sessionErr) {
+        console.warn("[WorksheetGenerator] Could not start session:", sessionErr);
+      }
+
       if (currentUser) {
-        const adaptiveQuestions = result.worksheet.questions.map((q, i) => ({
-          id: `q_${i}`,
-          question: q.question,
-          answer: q.answer,
-          explanation: q.explanation,
-        }));
-        const templateId = await StorageService.createWorksheetTemplate({
-          title: result.worksheet.title,
-          config: { ...config, subject: result.plan.subject as any, difficulty: result.plan.difficulty as any },
-          questions: adaptiveQuestions,
-          createdBy: currentUser.uid,
-        });
-        const attemptId = await StorageService.startWorksheetAttempt(
-          currentUser.uid,
-          templateId,
-          result.worksheet.title,
-          adaptiveQuestions,
-        );
-        router.push(`/attempt/${attemptId}`);
+        try {
+          const templateId = await StorageService.createWorksheetTemplate({
+            title: result.worksheet.title,
+            config: { ...config, subject: result.plan.subject as any, difficulty: result.plan.difficulty as any },
+            questions: adaptiveQuestions,
+            createdBy: currentUser.uid,
+          });
+          const attemptId = await StorageService.startWorksheetAttempt(
+            currentUser.uid,
+            templateId,
+            result.worksheet.title,
+            adaptiveQuestions,
+          );
+          router.push(`/attempt/${attemptId}`);
+        } catch (saveErr) {
+          console.warn("[WorksheetGenerator] Could not save adventure worksheet:", saveErr);
+        }
       }
     } catch (err) {
-      console.error("[WorksheetGenerator] Adventure mode failed, falling back:", err);
+      console.error("[WorksheetGenerator] Adventure mode failed:", err);
       setError("Oops! Something went wrong. Try building your own worksheet instead!");
     } finally {
       setLoading(false);
