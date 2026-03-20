@@ -89,7 +89,28 @@ export default function AppLayout() {
                 }}
               />
               <Tabs.Screen
+                name="insights"
+                options={{
+                  title: "Insights",
+                  headerShown: false,
+                  tabBarIcon: ({ color, size }) => (
+                    <MaterialCommunityIcons
+                      name="chart-line"
+                      size={size}
+                      color={color}
+                    />
+                  ),
+                }}
+              />
+              <Tabs.Screen
                 name="attempt/[userWorksheetId]"
+                options={{
+                  href: null,
+                  headerShown: false,
+                }}
+              />
+              <Tabs.Screen
+                name="theme-picker/index"
                 options={{
                   href: null,
                   headerShown: false,

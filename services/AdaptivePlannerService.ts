@@ -170,6 +170,12 @@ export class AdaptivePlannerService {
       lines.push(`\nPast arcs: ${context.arcHistory.map((a) => `${a.title} (${a.status})`).join(", ")}`);
     }
 
+    // Parent observations
+    if (context.parentFeedback && context.parentFeedback.length > 0) {
+      lines.push(`\nParent observations (incorporate these into your planning):`);
+      context.parentFeedback.forEach((note) => lines.push(`  - "${note}"`));
+    }
+
     return lines.join("\n");
   }
 

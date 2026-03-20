@@ -3,6 +3,7 @@ import { sessionService } from "@/services/SessionService";
 import { themeAffinityService } from "@/services/ThemeAffinityService";
 import { narrativeArcService } from "@/services/NarrativeArcService";
 import { StudentContext, SessionSignals } from "@/types/adaptive-pipeline";
+import { progressInsightsService } from "./ProgressInsightsService";
 
 const POSITIVE_EMOTIONS = ["excited", "happy", "calm", "proud", "joyful", "curious"];
 const NEGATIVE_EMOTIONS = ["frustrated", "confused", "bored", "anxious"];
@@ -30,6 +31,20 @@ export class SignalAggregatorService {
         narrativeArcService.getActiveArc(studentId),
         narrativeArcService.getArcHistory(studentId),
       ]);
+
+    // Fetch parent feedback notes
+    let parentFeedback: string[] = [];
+    try {
+      const parentUserId = profile?.userId || studentId;
+      const notes = await progressInsightsService.getUnconsumedNotes(parentUserId, studentId);
+      parentFeedback = notes.map((n) => n.text);
+      if (notes.length > 0) {
+        const noteIds = notes.filter((n) => n.id).map((n) => n.id!);
+        await progressInsightsService.markNotesConsumed(parentUserId, noteIds);
+      }
+    } catch (err) {
+      console.warn("[SignalAggregator] Could not load parent notes:", err);
+    }
 
     // Extract misconceptions from skill mastery data
     const misconceptions: string[] = [];
@@ -67,6 +82,7 @@ export class SignalAggregatorService {
       misconceptions,
       learningVelocity,
       arcHistory,
+      parentFeedback,
     };
   }
 
