@@ -23,6 +23,7 @@ import CharacterCompanion, {
 } from "../../components/CharacterCompanion";
 import { studentProfileService } from "../../services/StudentProfileService";
 import { evaluateAnswer } from "../../utils/answerEvaluation";
+import { AchievementService } from "@/services/AchievementService";
 import { LoadingState, ErrorState, Confetti } from "@/components/ui";
 import { useAppTheme } from "@/theme";
 import { colors, spacing, radii, fontSizes, fontWeights } from "@/theme";
@@ -229,7 +230,7 @@ export default function AttemptWorksheetScreen() {
       setRunningXP((prev) => prev + 10);
       animateXPPopup();
 
-      // Auto-advance after 1.5s for correct answers
+      // Auto-advance after 2.5s for correct answers (give kids time to enjoy feedback)
       setTimeout(() => {
         setFeedbackState(null);
         if (currentQuestionIndex < worksheet.questions.length - 1) {
@@ -242,7 +243,7 @@ export default function AttemptWorksheetScreen() {
           );
           setCompanionMood("encouraging");
         }
-      }, 1500);
+      }, 2500);
     } else {
       setFeedbackState("incorrect");
       setFeedbackCorrectAnswer(currentQ.answer || "");
@@ -417,6 +418,27 @@ export default function AttemptWorksheetScreen() {
               currentDifficulty: worksheet.config.difficulty === "easy" ? 1 : worksheet.config.difficulty === "medium" ? 3 : 5,
             });
           }
+          // Check and award achievements
+          try {
+            const achievementService = new AchievementService();
+            const newAchievements = await achievementService.checkAndAwardAchievements(
+              selectedStudent.id,
+              {
+                score: calculatedScore,
+                worksheetType: worksheet.config?.type || "math",
+                totalCompleted: 1, // First worksheet at minimum; TODO: track worksheetsCompleted on profile
+                currentStreak: streakRes.currentStreak,
+                currentLevel: xpRes.newLevel || selectedStudent.level || 1,
+                bondLevel: selectedStudent.characterBondLevel || 0,
+              }
+            );
+            if (newAchievements.length > 0) {
+              console.log("[Attempt] Achievements unlocked:", newAchievements.map(a => a.name));
+            }
+          } catch (achieveErr) {
+            console.warn("[Attempt] Achievement check failed:", achieveErr);
+          }
+
           // Refresh context so home screen shows updated stats
           await refreshStudentProfiles();
         } catch (profileErr) {
