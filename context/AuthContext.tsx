@@ -64,17 +64,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [studentProfiles, setStudentProfiles] = useState<StudentProfile[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
 
-  // Google OAuth configuration - only initialize if client IDs are available
-  const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-  const [request, response, promptAsync] = useIdTokenAuthRequest(
-    googleClientId
-      ? {
-          clientId: googleClientId,
-          iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-          androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-        }
-      : { clientId: 'placeholder' } // Will not be used; signInWithGoogle checks availability
-  );
+  // Google OAuth configuration
+  const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
+    || "165060975319-bu9pa23t4eiunvlis0dgseiccp11513g.apps.googleusercontent.com";
+  const [request, response, promptAsync] = useIdTokenAuthRequest({
+    clientId: googleClientId,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+  });
 
   const refreshStudentProfiles = async (userId?: string) => {
     const uid = userId || currentUser?.uid;

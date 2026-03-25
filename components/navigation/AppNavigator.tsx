@@ -22,7 +22,7 @@ interface AppNavigatorProps {
 }
 
 export default function AppNavigator({ children }: AppNavigatorProps) {
-  const { currentUser, userProfile, isLoading } = useAuth();
+  const { currentUser, userProfile, isLoading, refreshStudentProfiles } = useAuth();
   const [authScreen, setAuthScreen] = useState<AuthScreen>("signin");
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
 
@@ -71,11 +71,12 @@ export default function AppNavigator({ children }: AppNavigatorProps) {
   if (needsOnboarding) {
     return (
       <OnboardingFlow
-        onComplete={(studentId: string) => {
+        onComplete={async (studentId: string) => {
           console.log(
             "[AppNavigator] Onboarding complete for student:",
             studentId,
           );
+          await refreshStudentProfiles();
           setHasCompletedOnboarding(true);
         }}
       />
