@@ -49,6 +49,7 @@ export default function SignUpScreen({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const validateForm = (): string | null => {
     if (!displayName.trim()) return "Please enter your name";
@@ -63,23 +64,18 @@ export default function SignUpScreen({
   const handleEmailSignUp = async () => {
     const error = validateForm();
     if (error) {
-      Alert.alert("Validation Error", error);
+      setErrorMessage(error);
       return;
     }
 
     setIsLoading(true);
+    setErrorMessage(null);
     try {
       await signUpWithEmail(email.trim(), password, displayName.trim());
-      Alert.alert(
-        "Email Verification Sent",
-        "Please check your email to verify your account. You can start using the app now!",
-        [{ text: "OK", onPress: onSignUpSuccess }],
-      );
+      onSignUpSuccess();
     } catch (error) {
-      Alert.alert(
-        "Sign Up Failed",
-        error instanceof Error ? error.message : "An error occurred",
-      );
+      const msg = error instanceof Error ? error.message : "An error occurred";
+      setErrorMessage(msg);
     } finally {
       setIsLoading(false);
     }
@@ -87,15 +83,15 @@ export default function SignUpScreen({
 
   const handleGoogleSignUp = async () => {
     if (!agreedToTerms) {
-      Alert.alert("Terms Required", "Please agree to the Terms of Service and Privacy Policy");
+      setErrorMessage("Please agree to the Terms of Service and Privacy Policy");
       return;
     }
+    setErrorMessage(null);
     try {
       await signInWithGoogle();
       onSignUpSuccess();
     } catch (error) {
-      Alert.alert(
-        "Google Sign Up Failed",
+      setErrorMessage(
         error instanceof Error ? error.message : "An error occurred",
       );
     }
@@ -189,6 +185,12 @@ export default function SignUpScreen({
                   and <Text style={styles.link}>Privacy Policy</Text>
                 </Text>
               </TouchableOpacity>
+
+              {errorMessage && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                </View>
+              )}
 
               <PrimaryButton
                 title="Create Account"
@@ -351,5 +353,16 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.base,
     color: colors.teal500,
     fontWeight: fontWeights.bold,
+  },
+  errorContainer: {
+    backgroundColor: colors.coral400 + "15",
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  errorText: {
+    color: colors.coral400,
+    fontSize: fontSizes.sm,
+    textAlign: "center",
   },
 });
