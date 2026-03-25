@@ -1,12 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { StyleSheet, ScrollView, View, TouchableOpacity, Alert, Pressable, Platform } from "react-native";
 import { Text } from "react-native-paper";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenContainer } from "@/components/ui";
 import { colors, spacing, radii, shadows, fontSizes, fontWeights } from "@/theme";
 import { WorksheetCard, worksheetTemplates } from "../components/WorksheetCard";
 import { useAuth } from "../context/AuthContext";
 import { PlayerStats } from "../components/PlayerStats";
 import { SkillJourney } from "@/components/home/SkillJourney";
+import MathGate from "@/components/MathGate";
+import ParentDashboard from "@/components/ParentDashboard";
 
 export default function HomeScreen() {
   const {
@@ -16,6 +19,9 @@ export default function HomeScreen() {
     selectedStudent,
     setSelectedStudent,
   } = useAuth();
+
+  const [showMathGate, setShowMathGate] = useState(false);
+  const [showParentDashboard, setShowParentDashboard] = useState(false);
 
   const handleSignOut = async () => {
     if (Platform.OS === "web") {
@@ -50,6 +56,7 @@ export default function HomeScreen() {
   };
 
   return (
+    <>
     <ScreenContainer>
       {/* Hero Header */}
       <View style={styles.header}>
@@ -65,7 +72,12 @@ export default function HomeScreen() {
             </View>
           )}
         </View>
-{/* Sign out moved to Profile tab for safety */}
+        <TouchableOpacity
+          onPress={() => setShowMathGate(true)}
+          style={styles.gearButton}
+        >
+          <MaterialCommunityIcons name="cog" size={22} color={colors.textTertiary} />
+        </TouchableOpacity>
       </View>
 
       {/* Student Selector */}
@@ -119,6 +131,20 @@ export default function HomeScreen() {
         ))}
       </View>
     </ScreenContainer>
+
+      <MathGate
+        visible={showMathGate}
+        onSuccess={() => {
+          setShowMathGate(false);
+          setShowParentDashboard(true);
+        }}
+        onCancel={() => setShowMathGate(false)}
+      />
+      <ParentDashboard
+        visible={showParentDashboard}
+        onClose={() => setShowParentDashboard(false)}
+      />
+    </>
   );
 }
 
@@ -153,16 +179,13 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.semibold,
     color: colors.orange600,
   },
-  signOutButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  gearButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.sand100,
     justifyContent: "center",
     alignItems: "center",
-  },
-  signOutText: {
-    fontSize: 20,
   },
   studentSelector: {
     paddingHorizontal: spacing.xl,

@@ -91,15 +91,8 @@ export default function AppLayout() {
               <Tabs.Screen
                 name="insights"
                 options={{
-                  title: "Progress",
+                  href: null,
                   headerShown: false,
-                  tabBarIcon: ({ color, size }) => (
-                    <MaterialCommunityIcons
-                      name="chart-line"
-                      size={size}
-                      color={color}
-                    />
-                  ),
                 }}
               />
               <Tabs.Screen

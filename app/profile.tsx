@@ -1,16 +1,26 @@
+/**
+ * Profile Tab - Kid's Trophy Room
+ *
+ * Shows the student's character buddy, level, XP, streak,
+ * and achievements. This is the kid's personal space.
+ */
+
 import React from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
-import { Text, Avatar } from "react-native-paper";
+import { View, StyleSheet } from "react-native";
+import { Text, ProgressBar } from "react-native-paper";
 import { useAuth } from "../context/AuthContext";
 import { ScreenContainer, LoadingState, EmptyState } from "@/components/ui";
-import { colors, spacing, radii, fontSizes, fontWeights, shadows } from "@/theme";
+import { CharacterService } from "@/services/CharacterService";
+import { colors, spacing, radii, fontSizes, fontWeights } from "@/theme";
+
+const CHARACTER_EMOJIS: Record<string, string> = {
+  ada: "\u{1F989}",
+  max: "\u{1F436}",
+  luna: "\u{1F431}",
+};
 
 export default function ProfileScreen() {
-  const { currentUser, isLoading, signInWithGoogle, signOut } = useAuth();
-
-  const handleGoogleSignIn = () => {
-    signInWithGoogle();
-  };
+  const { currentUser, selectedStudent, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -20,69 +30,120 @@ export default function ProfileScreen() {
     );
   }
 
-  if (!currentUser) {
+  if (!currentUser || !selectedStudent) {
     return (
       <ScreenContainer noScroll>
         <EmptyState
           emoji={"\u{1F44B}"}
           title="Welcome!"
-          subtitle="Sign in to save your work and see how much you've learned!"
-          actionLabel="Sign In with Google"
-          onAction={handleGoogleSignIn}
+          subtitle="Complete onboarding to set up your profile!"
         />
       </ScreenContainer>
     );
   }
 
+  const charId = selectedStudent.selectedCharacterId || "ada";
+  const character = CharacterService.getCharacterById(charId);
+  const charEmoji = CHARACTER_EMOJIS[charId] || CHARACTER_EMOJIS.ada;
+  const evolution = CharacterService.getCharacterEvolution(charId, selectedStudent.level || 1);
+
+  const xp = selectedStudent.xp || 0;
+  const xpToNext = selectedStudent.xpToNextLevel || 100;
+  const xpProgress = xpToNext > 0 ? xp / xpToNext : 0;
+
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        {/* Profile Hero */}
+        {/* Character Hero */}
         <View style={styles.heroSection}>
-          <View style={styles.avatarContainer}>
-            {currentUser.photoURL ? (
-              <Avatar.Image
-                size={96}
-                source={{ uri: currentUser.photoURL }}
-                style={styles.avatar}
-              />
-            ) : (
-              <View style={styles.avatarFallback}>
-                <Text style={styles.avatarInitial}>
-                  {(currentUser.displayName || "U")[0].toUpperCase()}
-                </Text>
-              </View>
-            )}
+          <View style={styles.characterCircle}>
+            <Text style={styles.characterEmoji}>{charEmoji}</Text>
           </View>
-          <Text style={styles.displayName}>
-            {currentUser.displayName || "Explorer"}
+          <Text style={styles.characterName}>
+            {character?.name || "Ada"}
           </Text>
-          <Text style={styles.email}>{currentUser.email}</Text>
+          <Text style={styles.evolutionTitle}>
+            {evolution?.title || "Learning Buddy"}
+          </Text>
+          <Text style={styles.studentName}>
+            {selectedStudent.name}'s buddy
+          </Text>
         </View>
 
-        {/* Stats Cards */}
+        {/* Level & XP */}
+        <View style={styles.levelSection}>
+          <View style={styles.levelHeader}>
+            <Text style={styles.levelBadge}>Level {selectedStudent.level || 1}</Text>
+            <Text style={styles.xpText}>{xp} / {xpToNext} XP</Text>
+          </View>
+          <View style={styles.xpBarContainer}>
+            <ProgressBar
+              progress={xpProgress}
+              color={colors.teal400}
+              style={styles.xpBar}
+            />
+          </View>
+          {xpToNext - xp > 0 && (
+            <Text style={styles.xpHint}>
+              {xpToNext - xp} more XP to level up!
+            </Text>
+          )}
+        </View>
+
+        {/* Stats Grid */}
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, { backgroundColor: colors.coral50 }]}>
-            <Text style={styles.statEmoji}>{"\uD83C\uDFAF"}</Text>
-            <Text style={styles.statLabel}>Worksheets</Text>
-            <Text style={[styles.statValue, { color: colors.coral500 }]}>--</Text>
+            <Text style={styles.statEmoji}>{"\uD83D\uDD25"}</Text>
+            <Text style={[styles.statValue, { color: colors.coral500 }]}>
+              {selectedStudent.currentStreak || 0}
+            </Text>
+            <Text style={styles.statLabel}>Day Streak</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.teal50 }]}>
             <Text style={styles.statEmoji}>{"\u2B50"}</Text>
+            <Text style={[styles.statValue, { color: colors.teal500 }]}>
+              {xp}
+            </Text>
             <Text style={styles.statLabel}>Total XP</Text>
-            <Text style={[styles.statValue, { color: colors.teal500 }]}>--</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.violet50 }]}>
             <Text style={styles.statEmoji}>{"\uD83C\uDFC6"}</Text>
+            <Text style={[styles.statValue, { color: colors.violet500 }]}>
+              {selectedStudent.longestStreak || 0}
+            </Text>
             <Text style={styles.statLabel}>Best Streak</Text>
-            <Text style={[styles.statValue, { color: colors.violet500 }]}>--</Text>
           </View>
         </View>
 
-        {/* Sign Out */}
-        <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
-          <Text style={styles.signOutText}>{"\uD83D\uDEAA"}  Sign Out</Text>
-        </TouchableOpacity>
+        {/* Buddy Bond */}
+        <View style={styles.bondSection}>
+          <Text style={styles.bondTitle}>Buddy Bond</Text>
+          <View style={styles.bondBar}>
+            <View
+              style={[
+                styles.bondFill,
+                { width: `${Math.min((selectedStudent.characterBondLevel || 0), 100)}%` },
+              ]}
+            />
+          </View>
+          <Text style={styles.bondLabel}>
+            {(selectedStudent.characterBondLevel || 0) < 20
+              ? "Just getting to know each other!"
+              : (selectedStudent.characterBondLevel || 0) < 50
+              ? "Becoming friends!"
+              : (selectedStudent.characterBondLevel || 0) < 80
+              ? "Great partners!"
+              : "Best buddies forever!"}
+          </Text>
+        </View>
+
+        {/* Grade Info */}
+        <View style={styles.gradeSection}>
+          <Text style={styles.gradeLabel}>Grade</Text>
+          <Text style={styles.gradeValue}>
+            {selectedStudent.grade === "K" ? "Kindergarten" : `Grade ${selectedStudent.grade}`}
+          </Text>
+        </View>
       </View>
     </ScreenContainer>
   );
@@ -91,78 +152,149 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   content: {
     padding: spacing.xl,
-    paddingTop: spacing.xxxl,
+    paddingTop: spacing.xxl,
   },
   heroSection: {
     alignItems: "center",
-    marginBottom: spacing.xxxl,
+    marginBottom: spacing.xl,
   },
-  avatarContainer: {
-    marginBottom: spacing.lg,
-    ...shadows.lg,
-  },
-  avatar: {
-    borderWidth: 3,
-    borderColor: colors.coral400,
-  },
-  avatarFallback: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: colors.coral400,
+  characterCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.violet50,
+    borderWidth: 4,
+    borderColor: colors.violet100,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 3,
-    borderColor: colors.coral300,
+    marginBottom: spacing.md,
   },
-  avatarInitial: {
-    fontSize: 40,
-    fontWeight: fontWeights.extrabold,
-    color: colors.white,
+  characterEmoji: {
+    fontSize: 56,
   },
-  displayName: {
+  characterName: {
     fontSize: fontSizes.xxl,
     fontWeight: fontWeights.extrabold,
     color: colors.textPrimary,
   },
-  email: {
+  evolutionTitle: {
     fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold,
+    color: colors.violet500,
+    marginTop: spacing.xxs,
+  },
+  studentName: {
+    fontSize: fontSizes.sm,
     color: colors.textTertiary,
+    marginTop: spacing.xxs,
+  },
+  levelSection: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  levelHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  levelBadge: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.extrabold,
+    color: colors.teal500,
+  },
+  xpText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.textTertiary,
+  },
+  xpBarContainer: {
+    height: 10,
+    borderRadius: 5,
+    overflow: "hidden",
+    backgroundColor: colors.sand100,
+  },
+  xpBar: {
+    height: 10,
+    borderRadius: 5,
+  },
+  xpHint: {
+    fontSize: fontSizes.xs,
+    color: colors.teal400,
     marginTop: spacing.xs,
+    textAlign: "center",
   },
   statsGrid: {
     flexDirection: "row",
     gap: spacing.md,
-    marginBottom: spacing.xxxl,
+    marginBottom: spacing.lg,
   },
   statCard: {
     flex: 1,
     alignItems: "center",
     padding: spacing.lg,
     borderRadius: radii.xl,
-    gap: spacing.xs,
+    gap: spacing.xxs,
   },
   statEmoji: {
     fontSize: 24,
+  },
+  statValue: {
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.extrabold,
   },
   statLabel: {
     fontSize: fontSizes.xs,
     fontWeight: fontWeights.semibold,
     color: colors.textTertiary,
   },
-  statValue: {
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.extrabold,
+  bondSection: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
   },
-  signOutButton: {
+  bondTitle: {
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  bondBar: {
+    height: 8,
+    borderRadius: 4,
     backgroundColor: colors.sand100,
-    paddingVertical: spacing.lg,
-    borderRadius: radii.lg,
-    alignItems: "center",
+    overflow: "hidden",
   },
-  signOutText: {
+  bondFill: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.coral400,
+  },
+  bondLabel: {
+    fontSize: fontSizes.xs,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
+    textAlign: "center",
+  },
+  gradeSection: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
+  },
+  gradeLabel: {
     fontSize: fontSizes.base,
     fontWeight: fontWeights.semibold,
-    color: colors.textSecondary,
+    color: colors.textTertiary,
+  },
+  gradeValue: {
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.bold,
+    color: colors.textPrimary,
   },
 });
