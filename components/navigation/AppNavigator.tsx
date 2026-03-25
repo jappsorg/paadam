@@ -14,6 +14,7 @@ import { useAuth } from "../../context/AuthContext";
 import SignInScreen from "../auth/SignInScreen";
 import SignUpScreen from "../auth/SignUpScreen";
 import OnboardingFlow from "../onboarding/OnboardingFlow";
+import CharacterSelectionInterstitial from "../onboarding/CharacterSelectionInterstitial";
 
 type AuthScreen = "signin" | "signup";
 
@@ -22,7 +23,7 @@ interface AppNavigatorProps {
 }
 
 export default function AppNavigator({ children }: AppNavigatorProps) {
-  const { currentUser, userProfile, isLoading, refreshStudentProfiles } = useAuth();
+  const { currentUser, userProfile, isLoading, refreshStudentProfiles, selectedStudent } = useAuth();
   const [authScreen, setAuthScreen] = useState<AuthScreen>("signin");
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
 
@@ -79,6 +80,17 @@ export default function AppNavigator({ children }: AppNavigatorProps) {
           await refreshStudentProfiles();
           setHasCompletedOnboarding(true);
         }}
+      />
+    );
+  }
+
+  // Authenticated with children but selected student has no character
+  if (selectedStudent && selectedStudent.selectedCharacterId === null) {
+    return (
+      <CharacterSelectionInterstitial
+        studentId={selectedStudent.id}
+        studentName={selectedStudent.name}
+        refreshStudentProfiles={refreshStudentProfiles}
       />
     );
   }
