@@ -10,6 +10,7 @@ import React, {
   useContext,
   useEffect,
   useState,
+  useRef,
   ReactNode,
 } from 'react';
 import { User } from 'firebase/auth';
@@ -63,6 +64,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [isGoogleSignInLoading, setIsGoogleSignInLoading] = useState(false);
   const [studentProfiles, setStudentProfiles] = useState<StudentProfile[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
+  const selectedStudentIdRef = useRef<string | null>(null);
+
+  // Keep ref in sync with selected student
+  useEffect(() => {
+    selectedStudentIdRef.current = selectedStudent?.id || null;
+  }, [selectedStudent]);
 
   // Google OAuth configuration
   const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
@@ -80,9 +87,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       const profiles = await studentProfileService.getUserStudents(uid);
       setStudentProfiles(profiles);
       if (profiles.length > 0) {
-        if (selectedStudent) {
+        const currentId = selectedStudentIdRef.current;
+        if (currentId) {
           // Update the currently selected student with fresh data
-          const updated = profiles.find((p) => p.id === selectedStudent.id);
+          const updated = profiles.find((p) => p.id === currentId);
           if (updated) setSelectedStudent(updated);
         } else {
           setSelectedStudent(profiles[0]);

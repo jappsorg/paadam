@@ -23,8 +23,15 @@ import CharacterCompanion, {
 } from "../../components/CharacterCompanion";
 import { studentProfileService } from "../../services/StudentProfileService";
 import { evaluateAnswer } from "../../utils/answerEvaluation";
-import { AchievementService } from "@/services/AchievementService";
+import { AchievementService, type AchievementDefinition } from "@/services/AchievementService";
+import { AchievementUnlockedModal } from "@/components/AchievementUnlockedModal";
 import { LoadingState, ErrorState, Confetti } from "@/components/ui";
+
+const CHARACTER_EMOJIS: Record<string, string> = {
+  ada: "\u{1F989}",
+  max: "\u{1F436}",
+  luna: "\u{1F431}",
+};
 import { useAppTheme } from "@/theme";
 import { colors, spacing, radii, fontSizes, fontWeights } from "@/theme";
 
@@ -51,6 +58,8 @@ export default function AttemptWorksheetScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [unlockedAchievements, setUnlockedAchievements] = useState<AchievementDefinition[]>([]);
+  const [showAchievementModal, setShowAchievementModal] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
   const [processedAnswers, setProcessedAnswers] = useState<QuestionAttemptData[]>([]);
   const [companionMood, setCompanionMood] = useState<CompanionMood>("idle");
@@ -434,6 +443,8 @@ export default function AttemptWorksheetScreen() {
             );
             if (newAchievements.length > 0) {
               console.log("[Attempt] Achievements unlocked:", newAchievements.map(a => a.name));
+              setUnlockedAchievements(newAchievements);
+              setShowAchievementModal(true);
             }
           } catch (achieveErr) {
             console.warn("[Attempt] Achievement check failed:", achieveErr);
@@ -620,6 +631,12 @@ export default function AttemptWorksheetScreen() {
             </Button>
           </View>
         </ScrollView>
+        <AchievementUnlockedModal
+          visible={showAchievementModal}
+          achievements={unlockedAchievements}
+          buddyEmoji={CHARACTER_EMOJIS[characterId] || "\u{1F989}"}
+          onDismiss={() => setShowAchievementModal(false)}
+        />
       </SafeAreaView>
     );
   }

@@ -52,6 +52,15 @@ export default function ProfileScreen() {
   const xpToNext = selectedStudent.xpToNextLevel || 100;
   const xpProgress = xpToNext > 0 ? xp / xpToNext : 0;
 
+  // Compute lifetime XP (current progress + all XP consumed by previous levels)
+  const lifetimeXP = useMemo(() => {
+    let total = xp;
+    for (let lvl = 1; lvl < (selectedStudent.level || 1); lvl++) {
+      total += Math.floor(100 * Math.pow(1.5, lvl - 1));
+    }
+    return total;
+  }, [selectedStudent.level, xp]);
+
   // Achievement data
   const allAchievements = useMemo(() => AchievementService.getAllDefinitions(), []);
   const earnedIds = useMemo(
@@ -111,7 +120,7 @@ export default function ProfileScreen() {
           <View style={[styles.statCard, { backgroundColor: colors.teal50 }]}>
             <Text style={styles.statEmoji}>{"\u2B50"}</Text>
             <Text style={[styles.statValue, { color: colors.teal500 }]}>
-              {xp}
+              {lifetimeXP}
             </Text>
             <Text style={styles.statLabel}>Total XP</Text>
           </View>
