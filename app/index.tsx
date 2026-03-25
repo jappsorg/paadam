@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, ScrollView, View, TouchableOpacity, Alert, Pressable, Platform } from "react-native";
+import { StyleSheet, ScrollView, View, TouchableOpacity, Alert, Pressable, Platform, Modal } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenContainer } from "@/components/ui";
@@ -10,6 +10,7 @@ import { PlayerStats } from "../components/PlayerStats";
 import { SkillJourney } from "@/components/home/SkillJourney";
 import MathGate from "@/components/MathGate";
 import ParentDashboard from "@/components/ParentDashboard";
+import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 
 export default function HomeScreen() {
   const {
@@ -18,10 +19,12 @@ export default function HomeScreen() {
     studentProfiles,
     selectedStudent,
     setSelectedStudent,
+    refreshStudentProfiles,
   } = useAuth();
 
   const [showMathGate, setShowMathGate] = useState(false);
   const [showParentDashboard, setShowParentDashboard] = useState(false);
+  const [showAddChild, setShowAddChild] = useState(false);
 
   const handleSignOut = async () => {
     if (Platform.OS === "web") {
@@ -143,7 +146,18 @@ export default function HomeScreen() {
       <ParentDashboard
         visible={showParentDashboard}
         onClose={() => setShowParentDashboard(false)}
+        onAddChild={() => setShowAddChild(true)}
       />
+      {showAddChild && (
+        <Modal visible={showAddChild} animationType="slide">
+          <OnboardingFlow
+            onComplete={async () => {
+              setShowAddChild(false);
+              await refreshStudentProfiles();
+            }}
+          />
+        </Modal>
+      )}
     </>
   );
 }

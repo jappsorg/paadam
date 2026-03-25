@@ -35,9 +35,10 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 interface ParentDashboardProps {
   visible: boolean;
   onClose: () => void;
+  onAddChild?: () => void;
 }
 
-export default function ParentDashboard({ visible, onClose }: ParentDashboardProps) {
+export default function ParentDashboard({ visible, onClose, onAddChild }: ParentDashboardProps) {
   const {
     currentUser,
     userProfile,
@@ -198,6 +199,13 @@ export default function ParentDashboard({ visible, onClose }: ParentDashboardPro
               </Text>
             </View>
 
+            {onAddChild && (
+              <TouchableOpacity style={styles.addChildButton} onPress={() => { onClose(); onAddChild(); }}>
+                <MaterialCommunityIcons name="account-plus" size={18} color={colors.teal500} />
+                <Text style={styles.addChildText}>Add Another Child</Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
               <Text style={styles.signOutText}>Sign Out</Text>
             </TouchableOpacity>
@@ -319,6 +327,24 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.semibold,
     color: colors.textPrimary,
+  },
+  addChildButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: radii.lg,
+    backgroundColor: colors.teal50,
+    borderWidth: 1,
+    borderColor: colors.teal400,
+    borderStyle: "dashed",
+  },
+  addChildText: {
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.semibold,
+    color: colors.teal500,
   },
   signOutButton: {
     marginTop: spacing.lg,
