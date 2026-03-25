@@ -93,6 +93,7 @@ export interface StudentContext {
 
 // --- Learning Plan (output of Planner, input to Generator) ---
 export interface LearningPlan {
+  grade: string;
   theme: string;
   arcTitle: string;
   arcBeat: {

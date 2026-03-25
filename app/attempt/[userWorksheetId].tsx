@@ -22,6 +22,7 @@ import CharacterCompanion, {
   CompanionMood,
 } from "../../components/CharacterCompanion";
 import { studentProfileService } from "../../services/StudentProfileService";
+import { evaluateAnswer } from "../../utils/answerEvaluation";
 import { LoadingState, ErrorState, Confetti } from "@/components/ui";
 import { useAppTheme } from "@/theme";
 import { colors, spacing, radii, fontSizes, fontWeights } from "@/theme";
@@ -185,8 +186,9 @@ export default function AttemptWorksheetScreen() {
       (q) => {
         const userAnswerObj = userAnswers.find((ua) => ua.questionId === q.id);
         const isCorrect =
-          userAnswerObj?.answer.trim().toLowerCase() ===
-          q.answer?.trim().toLowerCase();
+          userAnswerObj?.answer && q.answer
+            ? evaluateAnswer(userAnswerObj.answer, q.answer)
+            : false;
         if (isCorrect) {
           score++;
         }
@@ -439,21 +441,19 @@ export default function AttemptWorksheetScreen() {
           mood={companionMood}
           studentName={selectedStudent?.name}
         />
-        <Card style={styles.card}>
-          <Card.Title
-            title={worksheet.title || "Attempt Worksheet"}
-            subtitle={`Question ${currentQuestionIndex + 1} of ${
-              worksheet.questions.length
-            }`}
-            titleVariant="headlineSmall"
-          />
-          <ProgressBar
-            progress={progress}
-            color={theme.colors.primary}
-            style={styles.progressBar}
-          />
+        <View style={styles.quizCard}>
+          <Text variant="headlineSmall">{worksheet.title || "Attempt Worksheet"}</Text>
+          <Text variant="bodyMedium" style={styles.questionSubtitle}>
+            Question {currentQuestionIndex + 1} of {worksheet.questions.length}
+          </Text>
+          <View style={styles.progressBarContainer}>
+            <ProgressBar
+              progress={progress}
+              color={theme.colors.primary}
+            />
+          </View>
           {currentQ && (
-            <Card.Content style={styles.questionContent}>
+            <>
               <Text variant="titleLarge" style={styles.questionText}>
                 {currentQ.question}
               </Text>
@@ -464,9 +464,9 @@ export default function AttemptWorksheetScreen() {
                 mode="outlined"
                 style={styles.answerInput}
               />
-            </Card.Content>
+            </>
           )}
-          <Card.Actions style={styles.actions}>
+          <View style={styles.actions}>
             <Button
               onPress={handlePreviousQuestion}
               disabled={currentQuestionIndex === 0 || isSubmitting}
@@ -494,8 +494,8 @@ export default function AttemptWorksheetScreen() {
                 Check My Answers!
               </Button>
             )}
-          </Card.Actions>
-        </Card>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -517,14 +517,24 @@ const styles = StyleSheet.create({
   card: {
     // No specific margin here, handled by scrollContent padding
   },
-  progressBar: {
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.md,
+  quizCard: {
+    backgroundColor: "#fff",
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    elevation: 1,
   },
-  questionContent: {
-    paddingVertical: spacing.xl,
+  questionSubtitle: {
+    color: colors.textSecondary,
+    marginTop: spacing.xxs,
+  },
+  progressBarContainer: {
+    height: 6,
+    marginVertical: spacing.md,
+    borderRadius: 3,
+    overflow: "hidden",
   },
   questionText: {
+    marginTop: spacing.lg,
     marginBottom: spacing.xl,
     lineHeight: 30,
   },
@@ -532,8 +542,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   actions: {
-    justifyContent: "space-between",
-    padding: spacing.lg,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingTop: spacing.lg,
+    gap: spacing.sm,
   },
   rewardsContainer: {
     flexDirection: "row",

@@ -91,7 +91,7 @@ export default function AppLayout() {
               <Tabs.Screen
                 name="insights"
                 options={{
-                  title: "Insights",
+                  title: "Progress",
                   headerShown: false,
                   tabBarIcon: ({ color, size }) => (
                     <MaterialCommunityIcons

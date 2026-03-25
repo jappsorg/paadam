@@ -2,14 +2,17 @@
  * Firebase Configuration
  *
  * Using Firebase Web SDK for cross-platform compatibility
- * Supports: Authentication, Firestore, Storage, Functions
+ * Supports: Authentication, Firestore
  */
 
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
-import { getStorage, FirebaseStorage } from "firebase/storage";
-import { getFunctions, Functions } from "firebase/functions";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  Firestore,
+} from "firebase/firestore";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -45,24 +48,12 @@ if (!getApps().length) {
 
 // Initialize services
 export const auth: Auth = getAuth(app);
-export const db: Firestore = getFirestore(app);
-export const storage: FirebaseStorage = getStorage(app);
-export const functions: Functions = getFunctions(app);
 
-// Enable Firestore offline persistence
-import { enableIndexedDbPersistence } from "firebase/firestore";
-
-// Enable persistence (with error handling for browsers that don't support it)
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code === "failed-precondition") {
-    console.warn(
-      "[Firestore] Multiple tabs open, persistence can only be enabled in one tab at a time.",
-    );
-  } else if (err.code === "unimplemented") {
-    console.warn(
-      "[Firestore] The current browser does not support persistence.",
-    );
-  }
+// Initialize Firestore with persistent local cache (replaces deprecated enableIndexedDbPersistence)
+export const db: Firestore = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  }),
 });
 
 export default app;

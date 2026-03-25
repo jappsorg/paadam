@@ -101,3 +101,13 @@ export const MATH_SUBJECT_OPTIONS: WorksheetOption<MathSubject>[] = [
   { id: "Money", label: "Money" },
   { id: "Random", label: "Random" },
 ];
+
+// Topics appropriate for each grade level
+export const GRADE_SUBJECT_MAP: Record<string, MathSubject[]> = {
+  K:   ["Addition", "Subtraction", "Patterns", "Measurement", "Time", "Random"],
+  "1": ["Addition", "Subtraction", "Patterns", "Measurement", "Time", "Money", "Random"],
+  "2": ["Addition", "Subtraction", "Multiplication", "Patterns", "Measurement", "Time", "Money", "Random"],
+  "3": ["Addition", "Subtraction", "Multiplication", "Division", "Fractions", "Patterns", "Measurement", "Time", "Money", "Random"],
+  "4": ["Addition", "Subtraction", "Multiplication", "Division", "Fractions", "Decimals", "Geometry", "Patterns", "Measurement", "Time", "Money", "Random"],
+  "5": ["Addition", "Subtraction", "Multiplication", "Division", "Fractions", "Decimals", "Geometry", "Algebra", "Patterns", "Measurement", "Time", "Money", "Random"],
+};

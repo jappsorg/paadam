@@ -18,6 +18,7 @@ const openrouter = createOpenRouter({
 
 // Zod schema for Planner output
 const LearningPlanSchema = z.object({
+  grade: z.string().describe("The student's grade level (e.g., K, 1, 2, 3, 4, 5)"),
   theme: z.string().describe("The narrative theme (e.g., cooking, dinosaurs, space)"),
   character: z.string().describe("Character guide name (Ada, Max, or Luna)"),
   arcTitle: z.string().describe("Title of the narrative arc"),
@@ -220,11 +221,13 @@ Rules:
           content: `You are a creative K-5 math worksheet generator. Generate a worksheet that weaves math problems into the given narrative. Every question should feel like part of the story. The character dialogue should match the character's personality.
 
 Important:
-- Generate 5-8 questions appropriate for the difficulty level
+- The plan includes the student's grade level — ALL questions MUST be appropriate for that grade
+- Generate 5-8 questions appropriate for both the grade level and difficulty level
 - Each question should connect to the narrative theme
 - Include the narrative intro that sets the scene
 - Character dialogue should be warm and age-appropriate
-- The arc progression hook should build excitement for next time`,
+- The arc progression hook should build excitement for next time
+- Answers should be numeric values only (e.g., "5" not "5 penguins")`,
         },
         {
           role: "user",
@@ -308,6 +311,7 @@ Important:
       .sort((a, b) => b.score - a.score)[0]?.theme ?? "animals";
 
     return {
+      grade: context.grade,
       theme: bestTheme,
       arcTitle: `${bestTheme.charAt(0).toUpperCase() + bestTheme.slice(1)} Adventure`,
       arcBeat: { position: 1, totalBeats: 3, narrative: "A new adventure begins!", cliffhanger: "What happens next?" },

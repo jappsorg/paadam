@@ -1,5 +1,15 @@
 {
   "firestore": {
-    "rules": "firestore.rules"
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Paadam",
+        "supportEmail": "sinduja.tvz@gmail.com"
+      }
+    }
   }
 }

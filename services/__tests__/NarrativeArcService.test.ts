@@ -27,6 +27,7 @@ describe("NarrativeArcService", () => {
   describe("createArcFromPlan", () => {
     it("creates a NarrativeArc from a LearningPlan", () => {
       const plan: LearningPlan = {
+        grade: "3",
         theme: "cooking",
         character: "Ada",
         arcTitle: "Chef's Kitchen Challenge",

@@ -7,6 +7,17 @@ import { StorageService, WorksheetAttempt } from "../services/StorageService";
 import { ScreenContainer, LoadingState, EmptyState, ErrorState } from "@/components/ui";
 import { colors, spacing, radii, fontSizes, fontWeights, shadows } from "@/theme";
 
+function formatRelativeDate(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 14) return "Last week";
+  return date.toLocaleDateString();
+}
+
 export default function HistoryScreen() {
   const { currentUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -145,7 +156,7 @@ export default function HistoryScreen() {
           )}
           <Text style={styles.dateText}>
             {item.lastActivityAt
-              ? new Date(item.lastActivityAt.seconds * 1000).toLocaleDateString()
+              ? formatRelativeDate(new Date(item.lastActivityAt.seconds * 1000))
               : "N/A"}
           </Text>
         </View>

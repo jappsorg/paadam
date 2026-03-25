@@ -39,6 +39,7 @@ export class DiscoveryQuestService {
     switch (phase) {
       case "theme_discovery":
         return {
+          grade,
           theme: favoriteThemes[0] || "animals",
           character,
           arcTitle: "Let's Find Your Adventure!",
@@ -55,6 +56,7 @@ export class DiscoveryQuestService {
       case "theme_contrast": {
         const contrastTheme = favoriteThemes[1] || "space";
         return {
+          grade,
           theme: contrastTheme,
           character,
           arcTitle: "Let's Find Your Adventure!",
@@ -72,6 +74,7 @@ export class DiscoveryQuestService {
       case "skill_probe": {
         const bestTheme = bestThemeSoFar || favoriteThemes[0] || "animals";
         return {
+          grade,
           theme: bestTheme,
           character,
           arcTitle: "Let's Find Your Adventure!",

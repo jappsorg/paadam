@@ -89,9 +89,9 @@ export default function InsightsScreen() {
     <ScreenContainer>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Insights</Text>
+        <Text style={styles.title}>My Progress</Text>
         {selectedStudent && (
-          <Text style={styles.studentName}>{selectedStudent.name}'s Progress</Text>
+          <Text style={styles.studentName}>How {selectedStudent.name} is doing</Text>
         )}
       </View>
 

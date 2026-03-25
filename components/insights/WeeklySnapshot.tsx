@@ -55,7 +55,7 @@ export function WeeklySnapshot({ data }: Props) {
           color={colors.teal50}
         />
         <SnapshotCard
-          label="Accuracy"
+          label="Right Answers"
           value={`${Math.round(data.accuracy * 100)}%`}
           trend={<TrendArrow current={data.accuracy} previous={data.accuracyPrevWeek} />}
           color={colors.gold100}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { StyleSheet, ScrollView, View, TouchableOpacity, Pressable } from "react-native";
+import { StyleSheet, ScrollView, View, TouchableOpacity, Pressable, ActivityIndicator } from "react-native";
 import {
   Button,
   Card,
@@ -19,6 +19,7 @@ import {
   type WorksheetType,
   WORKSHEET_GRADE_OPTIONS,
   MATH_SUBJECT_OPTIONS,
+  GRADE_SUBJECT_MAP,
   WORKSHEET_DIFFICULTIES,
   DEFAULT_QUESTIONS_COUNT,
   WORKSHEET_TYPE_LABELS,
@@ -405,6 +406,7 @@ export default function WorksheetGeneratorScreen() {
               onPress={handleAdventureGenerate}
               disabled={loading}
             >
+              {loading && <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />}
               <Text style={adventureStyles.goButtonText}>
                 {loading ? "Getting ready..." : arcProgress ? "Keep Going! \u{1F680}" : "Let's Go! \u{1F680}"}
               </Text>
@@ -444,7 +446,7 @@ export default function WorksheetGeneratorScreen() {
             <>
             <View style={styles.configItem}>
               <Text variant="titleMedium">What grade are you in?</Text>
-              <View style={styles.buttonGroup} key={config.grade}>
+              <View style={styles.buttonGroup}>
                 {WORKSHEET_GRADE_OPTIONS.map((grade) => (
                   <Button
                     key={grade.id}
@@ -454,10 +456,10 @@ export default function WorksheetGeneratorScreen() {
                       styles.buttonInGroup,
                       config.grade === grade.id
                         ? styles.buttonInGroupSelected
-                        : {},
+                        : styles.buttonInGroupUnselected,
                     ]}
                   >
-                    <Text>{grade.label}</Text>
+                    <Text style={config.grade === grade.id ? styles.buttonTextSelected : {}}>{grade.label}</Text>
                   </Button>
                 ))}
               </View>
@@ -468,8 +470,12 @@ export default function WorksheetGeneratorScreen() {
               type === "puzzle") && (
               <View style={styles.configItem}>
                 <Text variant="titleMedium">What do you want to practice?</Text>
-                <View style={styles.buttonGroup} key={config.subject}>
-                  {MATH_SUBJECT_OPTIONS.map((subject) => (
+                <View style={styles.buttonGroup}>
+                  {MATH_SUBJECT_OPTIONS.filter((subject) => {
+                    const gradeKey = config.grade === "K" ? "K" : config.grade.toString();
+                    const allowed = GRADE_SUBJECT_MAP[gradeKey];
+                    return !allowed || allowed.includes(subject.id);
+                  }).map((subject) => (
                     <Button
                       key={subject.id}
                       mode={config.subject === subject.id ? "outlined" : "text"}
@@ -478,10 +484,10 @@ export default function WorksheetGeneratorScreen() {
                         styles.buttonInGroup,
                         config.subject === subject.id
                           ? styles.buttonInGroupSelected
-                          : {},
+                          : styles.buttonInGroupUnselected,
                       ]}
                     >
-                      <Text>{subject.label}</Text>
+                      <Text style={config.subject === subject.id ? styles.buttonTextSelected : {}}>{subject.label}</Text>
                     </Button>
                   ))}
                 </View>
@@ -611,6 +617,15 @@ const styles = StyleSheet.create({
   buttonInGroupSelected: {
     borderWidth: 2,
     borderColor: colors.coral400,
+    backgroundColor: colors.coral400 + "20",
+  },
+  buttonInGroupUnselected: {
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  buttonTextSelected: {
+    color: colors.coral400,
+    fontWeight: fontWeights.bold as any,
   },
   error: {
     color: colors.error,
@@ -837,6 +852,8 @@ const adventureStyles = StyleSheet.create({
     borderRadius: radii.pill,
     paddingVertical: spacing.lg,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
     shadowColor: colors.teal400,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

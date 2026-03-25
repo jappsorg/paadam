@@ -65,12 +65,7 @@ export default function HomeScreen() {
             </View>
           )}
         </View>
-        <TouchableOpacity
-          onPress={handleSignOut}
-          style={styles.signOutButton}
-        >
-          <Text style={styles.signOutText}>{"\u{1F6AA}"}</Text>
-        </TouchableOpacity>
+{/* Sign out moved to Profile tab for safety */}
       </View>
 
       {/* Student Selector */}

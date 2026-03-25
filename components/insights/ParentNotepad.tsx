@@ -21,9 +21,9 @@ export function ParentNotepad({ notes, onSaveNote, saving }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Your Notes for the AI</Text>
+      <Text style={styles.sectionTitle}>Parent Notes</Text>
       <Text style={styles.subtitle}>
-        Share observations to help guide your child's learning path
+        Share tips to help guide learning (e.g., favorite themes, areas to focus on)
       </Text>
 
       <View style={styles.inputRow}>

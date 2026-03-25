@@ -25,7 +25,7 @@ export function EmotionalPulse({ data }: Props) {
   if (!data) {
     return (
       <View style={styles.container}>
-        <Text style={styles.sectionTitle}>How They're Feeling</Text>
+        <Text style={styles.sectionTitle}>Mood Check</Text>
         <View style={styles.card}>
           <Text style={styles.empty}>Not enough sessions yet to show emotional patterns.</Text>
         </View>
@@ -37,7 +37,7 @@ export function EmotionalPulse({ data }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>How They're Feeling</Text>
+      <Text style={styles.sectionTitle}>Mood Check</Text>
       <View style={styles.card}>
         <View style={styles.moodRow}>
           <Text style={styles.moodEmoji}>{emoji}</Text>
