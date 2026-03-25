@@ -117,6 +117,8 @@ export class StorageService {
     };
 
     const docRef = await addDoc(worksheetAttemptsRef, attempt);
+    // Invalidate cache so History tab picks up the new attempt
+    await this.invalidateAttemptsCache(userId);
     return docRef.id;
   }
 
@@ -148,13 +150,7 @@ export class StorageService {
     userId: string
   ): Promise<WorksheetAttempt[]> {
     try {
-      // First try to get from cache
-      const cachedAttempts = await this.getCachedWorksheetAttempts(userId);
-      if (cachedAttempts.length > 0) {
-        return cachedAttempts;
-      }
-
-      // If not in cache, fetch from Firestore
+      // Always fetch fresh from Firestore
       const q = query(
         worksheetAttemptsRef,
         where("userId", "==", userId),
@@ -168,12 +164,17 @@ export class StorageService {
         ...d.data(),
       })) as WorksheetAttempt[];
 
-      // Cache the results
+      // Update cache for offline use
       await this.cacheWorksheetAttempts(userId, attempts);
 
       return attempts;
     } catch (error) {
-      console.error("Error fetching worksheet history:", error);
+      // Fall back to cache if Firestore is unavailable (offline)
+      console.warn("Firestore unavailable, using cached history:", error);
+      const cachedAttempts = await this.getCachedWorksheetAttempts(userId);
+      if (cachedAttempts.length > 0) {
+        return cachedAttempts;
+      }
       throw error;
     }
   }
@@ -241,6 +242,16 @@ export class StorageService {
     } catch (error) {
       console.warn("Error reading from cache:", error);
       return [];
+    }
+  }
+
+  private static async invalidateAttemptsCache(userId: string): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(
+        `${ASYNC_STORAGE_WORKSHEET_ATTEMPTS_CACHE_PREFIX}${userId}`
+      );
+    } catch (error) {
+      console.warn("Error invalidating cache:", error);
     }
   }
 
