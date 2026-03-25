@@ -79,8 +79,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     try {
       const profiles = await studentProfileService.getUserStudents(uid);
       setStudentProfiles(profiles);
-      if (profiles.length > 0 && !selectedStudent) {
-        setSelectedStudent(profiles[0]);
+      if (profiles.length > 0) {
+        if (selectedStudent) {
+          // Update the currently selected student with fresh data
+          const updated = profiles.find((p) => p.id === selectedStudent.id);
+          if (updated) setSelectedStudent(updated);
+        } else {
+          setSelectedStudent(profiles[0]);
+        }
       }
     } catch (error) {
       console.error('[AuthContext] Failed to load student profiles:', error);
