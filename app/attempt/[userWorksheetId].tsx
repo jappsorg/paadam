@@ -8,7 +8,7 @@ import {
   ProgressBar,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, usePathname } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 import {
   StorageService,
@@ -47,6 +47,9 @@ export default function AttemptWorksheetScreen() {
   const { currentUser, isLoading: authLoading, selectedStudent, refreshStudentProfiles } = useAuth();
   const theme = useAppTheme();
   const router = useRouter();
+
+  const pathname = usePathname();
+  const isActiveRoute = pathname.startsWith("/attempt/");
 
   const [worksheetAttempt, setWorksheetAttempt] =
     useState<WorksheetAttempt | null>(null);
@@ -469,6 +472,13 @@ export default function AttemptWorksheetScreen() {
       setIsSubmitting(false);
     }
   };
+
+  // Render nothing when this screen is not the active route.
+  // On web, Expo Router tabs keep all screens mounted — this prevents the attempt
+  // screen from rendering as an invisible overlay that intercepts all taps.
+  if (!isActiveRoute || !userWorksheetId) {
+    return null;
+  }
 
   if (isLoading || authLoading) {
     return (
