@@ -5,12 +5,13 @@
  * and achievements. This is the kid's personal space.
  */
 
-import React from "react";
+import React, { useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import { Text, ProgressBar } from "react-native-paper";
 import { useAuth } from "../context/AuthContext";
 import { ScreenContainer, LoadingState, EmptyState } from "@/components/ui";
 import { CharacterService } from "@/services/CharacterService";
+import { AchievementService } from "@/services/AchievementService";
 import { colors, spacing, radii, fontSizes, fontWeights } from "@/theme";
 
 const CHARACTER_EMOJIS: Record<string, string> = {
@@ -50,6 +51,14 @@ export default function ProfileScreen() {
   const xp = selectedStudent.xp || 0;
   const xpToNext = selectedStudent.xpToNextLevel || 100;
   const xpProgress = xpToNext > 0 ? xp / xpToNext : 0;
+
+  // Achievement data
+  const allAchievements = useMemo(() => AchievementService.getAllDefinitions(), []);
+  const earnedIds = useMemo(
+    () => new Set(selectedStudent.achievements || []),
+    [selectedStudent.achievements],
+  );
+  const earnedCount = earnedIds.size;
 
   return (
     <ScreenContainer>
@@ -143,6 +152,45 @@ export default function ProfileScreen() {
           <Text style={styles.gradeValue}>
             {selectedStudent.grade === "K" ? "Kindergarten" : `Grade ${selectedStudent.grade}`}
           </Text>
+        </View>
+
+        {/* Achievements */}
+        <View style={styles.achievementsSection}>
+          <View style={styles.achievementsHeader}>
+            <Text style={styles.achievementsTitle}>Achievements</Text>
+            <Text style={styles.achievementsCount}>
+              {earnedCount} / {allAchievements.length}
+            </Text>
+          </View>
+          <View style={styles.achievementsGrid}>
+            {allAchievements.map((achievement) => {
+              const isEarned = earnedIds.has(achievement.id);
+              return (
+                <View
+                  key={achievement.id}
+                  style={[
+                    styles.achievementBadge,
+                    isEarned
+                      ? styles.achievementEarned
+                      : styles.achievementLocked,
+                  ]}
+                >
+                  <Text style={styles.achievementBadgeEmoji}>
+                    {isEarned ? achievement.emoji : "?"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.achievementBadgeName,
+                      !isEarned && styles.achievementBadgeNameLocked,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {isEarned ? achievement.name : "???"}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
         </View>
       </View>
     </ScreenContainer>
@@ -286,6 +334,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceElevated,
     borderRadius: radii.xl,
     padding: spacing.lg,
+    marginBottom: spacing.lg,
   },
   gradeLabel: {
     fontSize: fontSizes.base,
@@ -296,5 +345,58 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.base,
     fontWeight: fontWeights.bold,
     color: colors.textPrimary,
+  },
+  achievementsSection: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
+  },
+  achievementsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.md,
+  },
+  achievementsTitle: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.extrabold,
+    color: colors.textPrimary,
+  },
+  achievementsCount: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colors.textTertiary,
+  },
+  achievementsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  achievementBadge: {
+    width: "30%",
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radii.lg,
+  },
+  achievementEarned: {
+    backgroundColor: colors.gold50,
+  },
+  achievementLocked: {
+    backgroundColor: colors.sand100,
+    opacity: 0.6,
+  },
+  achievementBadgeEmoji: {
+    fontSize: 28,
+    marginBottom: spacing.xxs,
+  },
+  achievementBadgeName: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
+    color: colors.textPrimary,
+    textAlign: "center",
+  },
+  achievementBadgeNameLocked: {
+    color: colors.textTertiary,
   },
 });

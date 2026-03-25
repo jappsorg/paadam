@@ -204,23 +204,31 @@ export class StudentProfileService {
       throw new Error(`Student profile not found: ${studentId}`);
     }
 
-    const newXP = profile.xp + xp;
+    let currentXP = profile.xp + xp;
     let newLevel = profile.level;
+    let threshold = profile.xpToNextLevel;
     let leveledUp = false;
 
-    // Check for level up
-    while (newXP >= profile.xpToNextLevel) {
+    // Handle multi-level ups with XP rollover
+    while (currentXP >= threshold) {
+      currentXP -= threshold;
       newLevel++;
+      threshold = this.calculateXPForNextLevel(newLevel);
       leveledUp = true;
     }
 
-    const xpToNextLevel = this.calculateXPForNextLevel(newLevel);
-
     await this.updateProfile(studentId, {
-      xp: newXP,
+      xp: currentXP,
       level: newLevel,
-      xpToNextLevel,
+      xpToNextLevel: threshold,
     });
+
+    // Increase character bond on XP award
+    try {
+      await this.updateCharacterBond(studentId, 2);
+    } catch (e) {
+      console.warn("[StudentProfile] Bond update failed:", e);
+    }
 
     console.log("[StudentProfile] Awarded XP:", xp, "New level:", newLevel);
 

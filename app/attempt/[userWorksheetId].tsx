@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { StyleSheet, Alert, ScrollView, View } from "react-native";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { StyleSheet, Alert, ScrollView, View, Animated } from "react-native";
 import {
   Button,
   Text,
@@ -62,6 +62,18 @@ export default function AttemptWorksheetScreen() {
     currentStreak: number;
     streakIncreased: boolean;
   } | null>(null);
+
+  // Per-question immediate feedback state
+  const [feedbackState, setFeedbackState] = useState<null | "correct" | "incorrect">(null);
+  const [feedbackCorrectAnswer, setFeedbackCorrectAnswer] = useState<string>("");
+  const [feedbackExplanation, setFeedbackExplanation] = useState<string>("");
+  const [checkedQuestions, setCheckedQuestions] = useState<Set<string>>(new Set());
+  const [runningScore, setRunningScore] = useState(0);
+  const [runningXP, setRunningXP] = useState(0);
+
+  // Animation refs for XP popup
+  const xpFadeAnim = useRef(new Animated.Value(0)).current;
+  const xpSlideAnim = useRef(new Animated.Value(0)).current;
 
   const characterId = selectedStudent?.selectedCharacterId || "ada";
 
@@ -147,18 +159,136 @@ export default function AttemptWorksheetScreen() {
     setUserAnswers(updatedAnswers);
   };
 
+  const animateXPPopup = () => {
+    xpFadeAnim.setValue(0);
+    xpSlideAnim.setValue(0);
+    Animated.parallel([
+      Animated.timing(xpFadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(xpSlideAnim, {
+        toValue: -30,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // Hold for a moment, then fade out
+      setTimeout(() => {
+        Animated.timing(xpFadeAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }).start();
+      }, 800);
+    });
+  };
+
+  const handleCheckAnswer = () => {
+    if (!worksheet) return;
+    const currentQ = worksheet.questions[currentQuestionIndex];
+    saveCurrentAnswer();
+
+    const isCorrect =
+      currentAnswer && currentQ.answer
+        ? evaluateAnswer(currentAnswer, currentQ.answer)
+        : false;
+
+    // Build the processed answer data for this question
+    const questionAttemptData: QuestionAttemptData = {
+      questionId: currentQ.id,
+      userAnswer: currentAnswer,
+      isCorrect: currentQ.answer !== undefined ? isCorrect : undefined,
+      attemptsCount: worksheetAttempt
+        ? worksheetAttempt.questionsAttemptData.length + 1
+        : 1,
+      status: "answered",
+    };
+
+    // Update processedAnswers incrementally
+    setProcessedAnswers((prev) => {
+      const existing = prev.findIndex((a) => a.questionId === currentQ.id);
+      if (existing > -1) {
+        const updated = [...prev];
+        updated[existing] = questionAttemptData;
+        return updated;
+      }
+      return [...prev, questionAttemptData];
+    });
+
+    // Mark this question as checked
+    setCheckedQuestions((prev) => new Set(prev).add(currentQ.id));
+
+    if (isCorrect) {
+      setFeedbackState("correct");
+      setFeedbackCorrectAnswer("");
+      setFeedbackExplanation("");
+      setCompanionMood("correct");
+      setRunningScore((prev) => prev + 1);
+      setRunningXP((prev) => prev + 10);
+      animateXPPopup();
+
+      // Auto-advance after 1.5s for correct answers
+      setTimeout(() => {
+        setFeedbackState(null);
+        if (currentQuestionIndex < worksheet.questions.length - 1) {
+          const nextIndex = currentQuestionIndex + 1;
+          setCurrentQuestionIndex(nextIndex);
+          setCurrentAnswer(
+            userAnswers.find(
+              (a) => a.questionId === worksheet.questions[nextIndex].id
+            )?.answer || ""
+          );
+          setCompanionMood("encouraging");
+        }
+      }, 1500);
+    } else {
+      setFeedbackState("incorrect");
+      setFeedbackCorrectAnswer(currentQ.answer || "");
+      setFeedbackExplanation(currentQ.explanation || "");
+      setCompanionMood("incorrect");
+    }
+  };
+
+  const handleDismissFeedback = () => {
+    if (!worksheet) return;
+    setFeedbackState(null);
+    setFeedbackCorrectAnswer("");
+    setFeedbackExplanation("");
+
+    // Advance to next question if not on the last one
+    if (currentQuestionIndex < worksheet.questions.length - 1) {
+      const nextIndex = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(nextIndex);
+      setCurrentAnswer(
+        userAnswers.find(
+          (a) => a.questionId === worksheet.questions[nextIndex].id
+        )?.answer || ""
+      );
+      setCompanionMood("encouraging");
+    }
+  };
+
   const handleNextQuestion = () => {
     if (!worksheet || currentQuestionIndex >= worksheet.questions.length - 1)
       return;
-    saveCurrentAnswer();
-    const nextIndex = currentQuestionIndex + 1;
-    setCurrentQuestionIndex(nextIndex);
-    setCurrentAnswer(
-      userAnswers.find(
-        (a) => a.questionId === worksheet.questions[nextIndex].id
-      )?.answer || ""
-    );
-    setCompanionMood("encouraging");
+    // If already checked, just advance
+    const currentQ = worksheet.questions[currentQuestionIndex];
+    if (checkedQuestions.has(currentQ.id)) {
+      const nextIndex = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(nextIndex);
+      setCurrentAnswer(
+        userAnswers.find(
+          (a) => a.questionId === worksheet.questions[nextIndex].id
+        )?.answer || ""
+      );
+      setFeedbackState(null);
+      setCompanionMood("encouraging");
+    } else {
+      // Need to check first
+      handleCheckAnswer();
+    }
   };
 
   const handlePreviousQuestion = () => {
@@ -171,6 +301,7 @@ export default function AttemptWorksheetScreen() {
         (a) => a.questionId === worksheet.questions[prevIndex].id
       )?.answer || ""
     );
+    setFeedbackState(null);
     setCompanionMood("thinking");
   };
 
@@ -178,41 +309,80 @@ export default function AttemptWorksheetScreen() {
     if (!worksheet || !currentUser || !userWorksheetId) return;
     saveCurrentAnswer(); // Save the very last answer
 
+    // Check the last question if not yet checked
+    const lastQ = worksheet.questions[currentQuestionIndex];
+    let finalRunningScore = runningScore;
+    let finalRunningXP = runningXP;
+    let finalProcessedAnswers = [...processedAnswers];
+
+    if (!checkedQuestions.has(lastQ.id)) {
+      const isCorrect =
+        currentAnswer && lastQ.answer
+          ? evaluateAnswer(currentAnswer, lastQ.answer)
+          : false;
+
+      const questionAttemptData: QuestionAttemptData = {
+        questionId: lastQ.id,
+        userAnswer: currentAnswer,
+        isCorrect: lastQ.answer !== undefined ? isCorrect : undefined,
+        attemptsCount: worksheetAttempt
+          ? worksheetAttempt.questionsAttemptData.length + 1
+          : 1,
+        status: "answered",
+      };
+
+      const existingIdx = finalProcessedAnswers.findIndex((a) => a.questionId === lastQ.id);
+      if (existingIdx > -1) {
+        finalProcessedAnswers[existingIdx] = questionAttemptData;
+      } else {
+        finalProcessedAnswers.push(questionAttemptData);
+      }
+
+      if (isCorrect) {
+        finalRunningScore += 1;
+        finalRunningXP += 10;
+      }
+    }
+
     setIsSubmitting(true);
     setError(null);
+    setFeedbackState(null);
 
-    let score = 0;
-    const processedUserAnswers: QuestionAttemptData[] = worksheet.questions.map(
-      (q) => {
-        const userAnswerObj = userAnswers.find((ua) => ua.questionId === q.id);
-        const isCorrect =
-          userAnswerObj?.answer && q.answer
-            ? evaluateAnswer(userAnswerObj.answer, q.answer)
-            : false;
-        if (isCorrect) {
-          score++;
-        }
-        return {
-          questionId: q.id,
-          userAnswer: userAnswerObj?.answer || "",
-          isCorrect: q.answer !== undefined ? isCorrect : undefined,
-          attemptsCount: worksheetAttempt
-            ? worksheetAttempt.questionsAttemptData.length + 1
-            : 1,
-          status: "answered",
-        };
+    // Build complete processedAnswers for any questions that weren't checked
+    // (e.g., skipped questions with no answer)
+    const completeProcessedAnswers: QuestionAttemptData[] = worksheet.questions.map((q) => {
+      const existing = finalProcessedAnswers.find((a) => a.questionId === q.id);
+      if (existing) return existing;
+      // Question was never checked — evaluate now
+      const userAnswerObj = userAnswers.find((ua) => ua.questionId === q.id);
+      const isCorrect =
+        userAnswerObj?.answer && q.answer
+          ? evaluateAnswer(userAnswerObj.answer, q.answer)
+          : false;
+      if (isCorrect) {
+        finalRunningScore += 1;
       }
-    );
+      return {
+        questionId: q.id,
+        userAnswer: userAnswerObj?.answer || "",
+        isCorrect: q.answer !== undefined ? isCorrect : undefined,
+        attemptsCount: worksheetAttempt
+          ? worksheetAttempt.questionsAttemptData.length + 1
+          : 1,
+        status: "answered" as const,
+      };
+    });
 
+    const score = finalRunningScore;
     const calculatedScore = (score / worksheet.questions.length) * 100;
     setFinalScore(calculatedScore);
-    setProcessedAnswers(processedUserAnswers);
+    setProcessedAnswers(completeProcessedAnswers);
 
     try {
       await StorageService.updateWorksheetAttempt(userWorksheetId, {
         status: "completed",
         score: calculatedScore,
-        questionsAttemptData: processedUserAnswers,
+        questionsAttemptData: completeProcessedAnswers,
         completedAt: serverTimestamp() as any,
       });
       setCompanionMood(calculatedScore >= 70 ? "celebrating" : "encouraging");
@@ -220,7 +390,7 @@ export default function AttemptWorksheetScreen() {
       // Award XP and update streak if student profile exists
       if (selectedStudent?.id) {
         try {
-          // XP: 10 per correct answer + bonus for high scores
+          // XP: 10 per correct answer (already tracked) + bonus for high scores
           const baseXP = score * 10;
           const bonusXP = calculatedScore >= 90 ? 20 : calculatedScore >= 70 ? 10 : 0;
           const totalXP = baseXP + bonusXP;
@@ -294,6 +464,8 @@ export default function AttemptWorksheetScreen() {
   const currentQ: WorksheetQuestion | undefined =
     worksheet.questions[currentQuestionIndex];
   const progress = (currentQuestionIndex + 1) / worksheet.questions.length;
+  const isCurrentChecked = currentQ ? checkedQuestions.has(currentQ.id) : false;
+  const isLastQuestion = currentQuestionIndex === worksheet.questions.length - 1;
 
   // Results review screen
   if (showResults) {
@@ -441,7 +613,21 @@ export default function AttemptWorksheetScreen() {
           mood={companionMood}
           studentName={selectedStudent?.name}
         />
-        <View style={styles.quizCard}>
+
+        {/* Running XP indicator */}
+        {runningXP > 0 && (
+          <View style={styles.runningXPBadge}>
+            <Text style={styles.runningXPText}>{"\u2B50"} {runningXP} XP</Text>
+          </View>
+        )}
+
+        <View
+          style={[
+            styles.quizCard,
+            feedbackState === "correct" && styles.quizCardCorrectFlash,
+            feedbackState === "incorrect" && styles.quizCardIncorrectFlash,
+          ]}
+        >
           <Text variant="headlineSmall">{worksheet.title || "Attempt Worksheet"}</Text>
           <Text variant="bodyMedium" style={styles.questionSubtitle}>
             Question {currentQuestionIndex + 1} of {worksheet.questions.length}
@@ -463,35 +649,101 @@ export default function AttemptWorksheetScreen() {
                 onChangeText={handleAnswerChange}
                 mode="outlined"
                 style={styles.answerInput}
+                disabled={feedbackState !== null || isCurrentChecked}
               />
             </>
           )}
+
+          {/* Inline feedback overlay */}
+          {feedbackState === "correct" && (
+            <View style={styles.feedbackCorrectContainer}>
+              <Text style={styles.feedbackCorrectEmoji}>{"\u2705"}</Text>
+              <Text style={styles.feedbackCorrectText}>Correct!</Text>
+              <Animated.View
+                style={[
+                  styles.xpPopup,
+                  {
+                    opacity: xpFadeAnim,
+                    transform: [{ translateY: xpSlideAnim }],
+                  },
+                ]}
+              >
+                <Text style={styles.xpPopupText}>+10 XP</Text>
+              </Animated.View>
+            </View>
+          )}
+
+          {feedbackState === "incorrect" && (
+            <View style={styles.feedbackIncorrectContainer}>
+              <Text style={styles.feedbackIncorrectEmoji}>{"\u274C"}</Text>
+              <Text style={styles.feedbackIncorrectText}>Not quite!</Text>
+              {feedbackCorrectAnswer !== "" && (
+                <Text style={styles.feedbackCorrectAnswer}>
+                  The answer is: {feedbackCorrectAnswer}
+                </Text>
+              )}
+              {feedbackExplanation !== "" && (
+                <Text style={styles.feedbackExplanation}>
+                  {"\uD83D\uDCA1"} {feedbackExplanation}
+                </Text>
+              )}
+              <Button
+                mode="contained"
+                onPress={handleDismissFeedback}
+                style={styles.gotItButton}
+                compact
+              >
+                Got it!
+              </Button>
+            </View>
+          )}
+
           <View style={styles.actions}>
             <Button
               onPress={handlePreviousQuestion}
-              disabled={currentQuestionIndex === 0 || isSubmitting}
+              disabled={currentQuestionIndex === 0 || isSubmitting || feedbackState !== null}
               icon="arrow-left"
             >
               Previous
             </Button>
-            {currentQuestionIndex < worksheet.questions.length - 1 ? (
+            {isLastQuestion ? (
+              isCurrentChecked || feedbackState !== null ? (
+                <Button
+                  onPress={handleSubmitWorksheet}
+                  disabled={isSubmitting || feedbackState !== null}
+                  loading={isSubmitting}
+                  mode="contained"
+                  icon="check-circle"
+                >
+                  See My Results!
+                </Button>
+              ) : (
+                <Button
+                  onPress={handleCheckAnswer}
+                  disabled={isSubmitting || !currentAnswer.trim()}
+                  mode="contained"
+                  icon="check"
+                >
+                  Check
+                </Button>
+              )
+            ) : isCurrentChecked ? (
               <Button
                 onPress={handleNextQuestion}
-                disabled={isSubmitting}
+                disabled={isSubmitting || feedbackState !== null}
                 mode="contained"
                 icon="arrow-right"
               >
-                Next
+                Next Question
               </Button>
             ) : (
               <Button
-                onPress={handleSubmitWorksheet}
-                disabled={isSubmitting}
-                loading={isSubmitting}
+                onPress={handleCheckAnswer}
+                disabled={isSubmitting || feedbackState !== null || !currentAnswer.trim()}
                 mode="contained"
-                icon="check-circle"
+                icon="check"
               >
-                Check My Answers!
+                Check
               </Button>
             )}
           </View>
@@ -522,6 +774,81 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.lg,
     elevation: 1,
+  },
+  quizCardCorrectFlash: {
+    backgroundColor: colors.correctBackground,
+    borderWidth: 2,
+    borderColor: colors.correctBorder,
+  },
+  quizCardIncorrectFlash: {
+    backgroundColor: colors.incorrectBackground,
+    borderWidth: 2,
+    borderColor: colors.incorrectBorder,
+  },
+  runningXPBadge: {
+    alignSelf: "flex-end",
+    backgroundColor: colors.gold100,
+    borderRadius: radii.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  runningXPText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: colors.plum700,
+  },
+  feedbackCorrectContainer: {
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    gap: spacing.xs,
+  },
+  feedbackCorrectEmoji: {
+    fontSize: fontSizes.xxl,
+  },
+  feedbackCorrectText: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
+    color: colors.correctText,
+  },
+  feedbackIncorrectContainer: {
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    gap: spacing.xs,
+  },
+  feedbackIncorrectEmoji: {
+    fontSize: fontSizes.xxl,
+  },
+  feedbackIncorrectText: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.bold,
+    color: colors.incorrectText,
+  },
+  feedbackCorrectAnswer: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.semibold,
+    color: colors.correctText,
+    textAlign: "center",
+  },
+  feedbackExplanation: {
+    fontSize: fontSizes.md,
+    color: colors.plum800,
+    textAlign: "center",
+    lineHeight: 21,
+    paddingHorizontal: spacing.md,
+  },
+  gotItButton: {
+    marginTop: spacing.sm,
+  },
+  xpPopup: {
+    position: "absolute",
+    right: spacing.md,
+    top: 0,
+  },
+  xpPopupText: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.extrabold,
+    color: colors.gold500,
   },
   questionSubtitle: {
     color: colors.textSecondary,
