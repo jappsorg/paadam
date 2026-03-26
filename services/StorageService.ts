@@ -27,6 +27,7 @@ export interface WorksheetTemplate {
   createdBy?: string;
   createdAt: Timestamp;
   version?: number;
+  mode?: 'practice' | 'explore' | 'challenge';
 }
 
 export interface QuestionAttemptData {
@@ -57,6 +58,7 @@ export interface WorksheetAttempt {
   startedAt: Timestamp;
   lastActivityAt: Timestamp;
   completedAt?: Timestamp;
+  mode?: 'practice' | 'explore' | 'challenge';
 }
 
 // For local caching if needed

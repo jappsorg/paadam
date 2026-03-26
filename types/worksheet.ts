@@ -2,6 +2,8 @@ export type WorksheetType = "math" | "puzzle" | "word-problem" | "logic";
 
 export type WorksheetDifficulty = "easy" | "medium" | "hard";
 
+export type WorksheetMode = 'practice' | 'explore' | 'challenge';
+
 export type WorksheetGrade = "K" | "1" | "2" | "3" | "4" | "5";
 
 export type MathSubject =
