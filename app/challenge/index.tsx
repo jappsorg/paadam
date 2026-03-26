@@ -45,8 +45,11 @@ export default function ChallengeScreen() {
   }, [pathname]);
 
   if (!selectedStudent || !currentUser) {
-    router.replace('/');
-    return null;
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={colors.violet400} />
+      </View>
+    );
   }
 
   const availableSubjects = GRADE_SUBJECT_MAP[grade] || GRADE_SUBJECT_MAP['1'];

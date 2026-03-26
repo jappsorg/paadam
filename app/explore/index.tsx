@@ -39,8 +39,11 @@ export default function ExploreScreen() {
   }, [pathname, selectedStudent, currentUser]);
 
   if (!selectedStudent || !currentUser) {
-    router.replace('/');
-    return null;
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={colors.teal400} />
+      </View>
+    );
   }
 
   const handleGenerate = async () => {

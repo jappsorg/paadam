@@ -43,8 +43,11 @@ export default function PracticeScreen() {
   }, [pathname]);
 
   if (!selectedStudent) {
-    router.replace('/');
-    return null;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.gold500} />
+      </View>
+    );
   }
 
   const characterEmoji = CHARACTER_EMOJIS[selectedStudent.selectedCharacterId || 'ada'] || '🦉';
