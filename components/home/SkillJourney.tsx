@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable } from "react-native";
 import { Text } from "react-native-paper";
 import { colors, spacing, fontSizes, fontWeights } from "@/theme";
 
@@ -13,6 +13,7 @@ interface SkillNode {
 interface Props {
   skills: Record<string, any>;
   grade?: string;
+  onSkillPress?: (skillId: string) => void;
 }
 
 const gradeSkillOrder: Record<string, string[]> = {
@@ -44,7 +45,7 @@ const stateStyles = {
   mastered: { bg: colors.green500, border: colors.green500, emoji: "\u2B50" },
 };
 
-export function SkillJourney({ skills, grade }: Props) {
+export function SkillJourney({ skills, grade, onSkillPress }: Props) {
   const order = gradeSkillOrder[grade || "3"] || gradeSkillOrder["3"];
 
   const nodes: SkillNode[] = order.map((skillId) => ({
@@ -70,7 +71,13 @@ export function SkillJourney({ skills, grade }: Props) {
                   ]} />
                 </View>
               )}
-              <View style={styles.nodeWrapper}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.nodeWrapper,
+                  node.state !== "locked" && pressed && { opacity: 0.75, transform: [{ scale: 0.95 }] },
+                ]}
+                onPress={() => node.state !== "locked" && onSkillPress?.(node.id)}
+              >
                 <View style={[styles.node, { backgroundColor: s.bg, borderColor: s.border }]}>
                   <Text style={styles.nodeEmoji}>
                     {node.state === "mastered" ? s.emoji : (skillEmojis[node.id] || "\u{1F4DA}")}
@@ -83,7 +90,7 @@ export function SkillJourney({ skills, grade }: Props) {
                 {node.state === "in-progress" && (
                   <Text style={styles.nodeProgress}>{node.masteryLevel}%</Text>
                 )}
-              </View>
+              </Pressable>
             </React.Fragment>
           );
         })}
