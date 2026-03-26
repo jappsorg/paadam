@@ -2,15 +2,24 @@ import React, { useState } from "react";
 import { StyleSheet, ScrollView, View, TouchableOpacity, Alert, Pressable, Platform } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/ui";
 import { colors, spacing, radii, shadows, fontSizes, fontWeights } from "@/theme";
-import { WorksheetCard, worksheetTemplates } from "../components/WorksheetCard";
 import { useAuth } from "../context/AuthContext";
 import { PlayerStats } from "../components/PlayerStats";
 import { SkillJourney } from "@/components/home/SkillJourney";
+import { ModeCard } from "@/components/home/ModeCard";
+import { MODE_CONFIGS, MODE_ORDER } from "@/types/modes";
+import { getSuggestion } from "@/utils/modeSuggestion";
 import MathGate from "@/components/MathGate";
 import ParentDashboard from "@/components/ParentDashboard";
 import AddChildForm from "@/components/AddChildForm";
+
+const CHARACTER_EMOJIS: Record<string, string> = {
+  ada: "\u{1F989}",
+  max: "\u{1F436}",
+  luna: "\u{1F431}",
+};
 
 export default function HomeScreen() {
   const {
@@ -21,9 +30,34 @@ export default function HomeScreen() {
     setSelectedStudent,
   } = useAuth();
 
+  const router = useRouter();
   const [showMathGate, setShowMathGate] = useState(false);
   const [showParentDashboard, setShowParentDashboard] = useState(false);
   const [showAddChild, setShowAddChild] = useState(false);
+
+  const skillsMastery = (selectedStudent as any)?.skillsMastery || (selectedStudent as any)?.skillMastery || {};
+
+  // Estimate completed worksheets from total questions attempted
+  const totalAttempted = Object.values(skillsMastery).reduce(
+    (sum: number, s: any) => sum + (s.questionsAttempted || 0), 0
+  );
+  const estimatedWorksheets = Math.floor(totalAttempted / 5);
+
+  const suggestion = selectedStudent
+    ? getSuggestion({
+        completedWorksheetCount: estimatedWorksheets,
+        averageScore: 0,
+        skillsMastery,
+        currentStreak: selectedStudent.currentStreak || 0,
+        recentAccuracy: 0,
+        dispositionConfidence: (selectedStudent as any).dispositionConfidence,
+        challengeSeeking: (selectedStudent as any).learningDisposition?.challengeSeeking,
+      })
+    : null;
+
+  const characterEmoji = selectedStudent?.selectedCharacterId
+    ? CHARACTER_EMOJIS[selectedStudent.selectedCharacterId] || "\u{1F989}"
+    : "\u{1F989}";
 
   const handleSignOut = async () => {
     if (Platform.OS === "web") {
@@ -116,22 +150,32 @@ export default function HomeScreen() {
       {/* Player Stats */}
       {selectedStudent && <PlayerStats student={selectedStudent} />}
 
+      {/* Mode Cards */}
+      <View style={styles.worksheetSection}>
+        <Text style={styles.sectionTitle}>What do you feel like doing?</Text>
+        <Text style={styles.sectionSubtitle}>Pick your path</Text>
+        {MODE_ORDER.map((modeId) => {
+          const mode = MODE_CONFIGS[modeId];
+          const isSuggested = suggestion?.mode === modeId;
+          return (
+            <ModeCard
+              key={modeId}
+              mode={mode}
+              characterEmoji={isSuggested ? characterEmoji : undefined}
+              characterMessage={isSuggested ? suggestion?.reason : undefined}
+            />
+          );
+        })}
+      </View>
+
       {/* Skill Journey */}
       {selectedStudent && (
         <SkillJourney
-          skills={(selectedStudent as any).skillMastery || (selectedStudent as any).skillsMastery || {}}
+          skills={skillsMastery}
           grade={selectedStudent.grade}
+          onSkillPress={(skillId) => router.push('/practice' as any)}
         />
       )}
-
-      {/* Worksheet Section */}
-      <View style={styles.worksheetSection}>
-        <Text style={styles.sectionTitle}>What shall we explore?</Text>
-        <Text style={styles.sectionSubtitle}>Pick an adventure below</Text>
-        {worksheetTemplates.map((worksheet) => (
-          <WorksheetCard key={worksheet.id} worksheet={worksheet} />
-        ))}
-      </View>
     </ScreenContainer>
 
       <MathGate
