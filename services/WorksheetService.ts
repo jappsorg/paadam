@@ -47,7 +47,7 @@ export class WorksheetService {
     const prompts: CoreMessage[] = [];
     prompts.push({
       role: "system",
-      content: `You are a expert at generating worksheet for kids K-5`,
+      content: `You are an expert at generating worksheets for kids K-5. IMPORTANT: This is a text-only app with NO images, pictures, or visual aids. Never generate questions that require looking at images, counting objects in pictures, or reference any visual elements. All questions must be fully self-contained in text. For counting questions, state the number in words within the question itself (e.g., "There are 3 elephants and 2 monkeys. How many animals are there in total?" NOT "How many elephants do you see?").`,
     });
     prompts.push({
       role: "user",
