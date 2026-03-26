@@ -64,7 +64,7 @@ export default function ExploreScreen() {
         // Discovery quest: deterministic plan, then generate worksheet
         const plan = discoveryQuestService.generateDiscoveryPlan(
           studentId,
-          profile?.grade || selectedStudent.grade || '1',
+          selectedStudent.grade || profile?.grade || '1',
           selectedStudent.selectedCharacterId || 'ada',
           phase,
           profile?.favoriteThemes || ['animals'],

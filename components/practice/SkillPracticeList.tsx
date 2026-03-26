@@ -53,12 +53,12 @@ export function SkillPracticeList({
         <Text style={styles.quickButtonSubtext}>
           {urgentSkill
             ? `Work on ${urgentSkill}`
-            : 'Strengthen your weakest skill'}
+            : 'Jump into what you\'re learning next!'}
         </Text>
       </Pressable>
 
       <Text variant="titleSmall" style={styles.sectionTitle}>
-        Pick a skill to practice
+        Which one do you want to work on?
       </Text>
 
       {skills.map((skillId) => {

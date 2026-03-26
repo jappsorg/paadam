@@ -50,6 +50,8 @@ export default function AppLayout() {
                 options={{
                   href: null,
                   headerShown: false,
+                  lazy: true,
+                  freezeOnBlur: true,
                 }}
               />
               <Tabs.Screen
@@ -57,6 +59,8 @@ export default function AppLayout() {
                 options={{
                   href: null,
                   headerShown: false,
+                  lazy: true,
+                  freezeOnBlur: true,
                 }}
               />
               <Tabs.Screen
@@ -64,6 +68,8 @@ export default function AppLayout() {
                 options={{
                   href: null,
                   headerShown: false,
+                  lazy: true,
+                  freezeOnBlur: true,
                 }}
               />
               <Tabs.Screen
@@ -71,6 +77,8 @@ export default function AppLayout() {
                 options={{
                   href: null,
                   headerShown: false,
+                  lazy: true,
+                  freezeOnBlur: true,
                 }}
               />
               <Tabs.Screen
@@ -106,6 +114,8 @@ export default function AppLayout() {
                 options={{
                   href: null,
                   headerShown: false,
+                  lazy: true,
+                  freezeOnBlur: true,
                 }}
               />
               <Tabs.Screen
@@ -113,6 +123,8 @@ export default function AppLayout() {
                 options={{
                   href: null,
                   headerShown: false,
+                  lazy: true,
+                  freezeOnBlur: true,
                 }}
               />
               <Tabs.Screen
@@ -120,6 +132,8 @@ export default function AppLayout() {
                 options={{
                   href: null,
                   headerShown: false,
+                  lazy: true,
+                  freezeOnBlur: true,
                 }}
               />
             </Tabs>

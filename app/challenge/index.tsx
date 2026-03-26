@@ -53,6 +53,11 @@ export default function ChallengeScreen() {
 
   const handleTypeSelect = (type: WorksheetType) => {
     setSelectedType(type);
+    // Reset subject to first available for this grade when changing type
+    const subjects = GRADE_SUBJECT_MAP[grade] || GRADE_SUBJECT_MAP['1'];
+    if (subjects.length > 0) {
+      setSubject(subjects[0] as MathSubject);
+    }
     setStep('config');
   };
 
@@ -165,7 +170,7 @@ export default function ChallengeScreen() {
         {step === 'config' && (
           <>
             <Text variant="titleMedium" style={styles.sectionTitle}>
-              Set up your {WORKSHEET_TYPE_LABELS[selectedType]}
+              Pick what you want to practice
             </Text>
 
             <Text variant="labelLarge" style={styles.fieldLabel}>Topic</Text>
@@ -176,17 +181,17 @@ export default function ChallengeScreen() {
                   onPress={() => setSubject(s as MathSubject)}
                   style={[
                     styles.chip,
-                    subject === s && { backgroundColor: colors.violet400 },
+                    subject === s && styles.chipSelected,
                   ]}
                 >
-                  <Text style={[styles.chipText, subject === s && { color: '#fff' }]}>
+                  <Text style={[styles.chipText, subject === s && styles.chipTextSelected]}>
                     {s}
                   </Text>
                 </Pressable>
               ))}
             </ScrollView>
 
-            <Text variant="labelLarge" style={styles.fieldLabel}>Difficulty</Text>
+            <Text variant="labelLarge" style={styles.fieldLabel}>How tricky?</Text>
             <SegmentedButtons
               value={difficulty}
               onValueChange={(v) => setDifficulty(v as WorksheetDifficulty)}
@@ -194,7 +199,7 @@ export default function ChallengeScreen() {
               style={styles.segmented}
             />
 
-            <Text variant="labelLarge" style={styles.fieldLabel}>Questions</Text>
+            <Text variant="labelLarge" style={styles.fieldLabel}>How many?</Text>
             <SegmentedButtons
               value={String(questionsCount)}
               onValueChange={(v) => setQuestionsCount(Number(v))}
@@ -263,9 +268,14 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 16, paddingVertical: 8,
     borderRadius: 20, backgroundColor: colors.sand200,
-    marginRight: 8,
+    marginRight: 8, borderWidth: 2, borderColor: 'transparent',
+  },
+  chipSelected: {
+    backgroundColor: colors.violet400,
+    borderColor: colors.violet500,
   },
   chipText: { fontWeight: '500', color: colors.textPrimary },
+  chipTextSelected: { color: '#fff', fontWeight: '700' },
   segmented: { marginBottom: 4 },
   generateButton: {
     backgroundColor: colors.violet400,
