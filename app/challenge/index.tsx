@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ScrollView, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { Text, SegmentedButtons } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import WorksheetService from '@/services/WorksheetService';
 import { StorageService } from '@/services/StorageService';
@@ -22,6 +22,7 @@ const TYPE_CARDS: { id: WorksheetType; title: string; icon: string; color: strin
 export default function ChallengeScreen() {
   const { selectedStudent, currentUser } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const defaultGrade = (selectedStudent?.grade || '1') as WorksheetGrade;
 
@@ -33,6 +34,15 @@ export default function ChallengeScreen() {
   const [questionsCount, setQuestionsCount] = useState(5);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset to type selection when re-entering the screen
+  useEffect(() => {
+    if (pathname === '/challenge') {
+      setStep('type');
+      setError(null);
+      setGenerating(false);
+    }
+  }, [pathname]);
 
   if (!selectedStudent || !currentUser) {
     router.replace('/');

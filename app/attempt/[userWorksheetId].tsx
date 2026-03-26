@@ -104,6 +104,22 @@ export default function AttemptWorksheetScreen() {
 
     setIsLoading(true);
     setError(null);
+    // Reset all state from any previous attempt
+    setShowResults(false);
+    setFinalScore(0);
+    setProcessedAnswers([]);
+    setCurrentQuestionIndex(0);
+    setCurrentAnswer("");
+    setUserAnswers([]);
+    setFeedbackState(null);
+    setCheckedQuestions(new Set());
+    setRunningScore(0);
+    setRunningXP(0);
+    setXpResult(null);
+    setStreakResult(null);
+    setCompanionMood("idle");
+    setUnlockedAchievements([]);
+    setShowAchievementModal(false);
     try {
       const fetchedWorksheetAttempt =
         await StorageService.getWorksheetAttemptById(userWorksheetId);

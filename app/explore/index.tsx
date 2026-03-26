@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Text } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { adaptivePlannerService } from '@/services/AdaptivePlannerService';
 import { StorageService } from '@/services/StorageService';
@@ -17,18 +17,26 @@ const CHARACTER_EMOJIS: Record<string, string> = {
 export default function ExploreScreen() {
   const { selectedStudent, currentUser } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [autoStarted, setAutoStarted] = useState(false);
+  const hasGenerated = useRef(false);
 
   const characterEmoji = CHARACTER_EMOJIS[selectedStudent?.selectedCharacterId || 'ada'] || '🦉';
 
+  // Auto-start generation when screen becomes active
   useEffect(() => {
-    if (selectedStudent && currentUser && !autoStarted) {
-      setAutoStarted(true);
+    const isActive = pathname === '/explore';
+    if (isActive && selectedStudent && currentUser && !hasGenerated.current && !generating) {
+      hasGenerated.current = true;
       handleGenerate();
     }
-  }, [selectedStudent, currentUser]);
+    // Reset when navigating away so next visit triggers generation
+    if (!isActive) {
+      hasGenerated.current = false;
+      setError(null);
+    }
+  }, [pathname, selectedStudent, currentUser]);
 
   if (!selectedStudent || !currentUser) {
     router.replace('/');

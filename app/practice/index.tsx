@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Text } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { SkillPracticeList } from '@/components/practice/SkillPracticeList';
 import WorksheetService from '@/services/WorksheetService';
@@ -30,8 +30,17 @@ const SKILL_TO_SUBJECT: Record<string, string> = {
 export default function PracticeScreen() {
   const { selectedStudent, currentUser } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset state when re-entering the screen
+  useEffect(() => {
+    if (pathname === '/practice') {
+      setGenerating(false);
+      setError(null);
+    }
+  }, [pathname]);
 
   if (!selectedStudent) {
     router.replace('/');
