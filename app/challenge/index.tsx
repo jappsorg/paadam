@@ -45,6 +45,7 @@ export default function ChallengeScreen() {
   }, [pathname]);
 
   if (!selectedStudent || !currentUser) {
+    if (pathname !== '/challenge') return null;
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={colors.violet400} />

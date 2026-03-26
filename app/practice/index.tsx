@@ -43,6 +43,8 @@ export default function PracticeScreen() {
   }, [pathname]);
 
   if (!selectedStudent) {
+    // Show nothing if screen is not active, loading spinner if it is
+    if (pathname !== '/practice') return null;
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.gold500} />

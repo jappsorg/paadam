@@ -258,20 +258,7 @@ export default function AttemptWorksheetScreen() {
       setRunningXP((prev) => prev + 10);
       animateXPPopup();
 
-      // Auto-advance after 2.5s for correct answers (give kids time to enjoy feedback)
-      setTimeout(() => {
-        setFeedbackState(null);
-        if (currentQuestionIndex < worksheet.questions.length - 1) {
-          const nextIndex = currentQuestionIndex + 1;
-          setCurrentQuestionIndex(nextIndex);
-          setCurrentAnswer(
-            userAnswers.find(
-              (a) => a.questionId === worksheet.questions[nextIndex].id
-            )?.answer || ""
-          );
-          setCompanionMood("encouraging");
-        }
-      }, 2500);
+      // Let kids press "Next" themselves — no auto-advance
     } else {
       setFeedbackState("incorrect");
       setFeedbackCorrectAnswer(currentQ.answer || "");
@@ -724,6 +711,16 @@ export default function AttemptWorksheetScreen() {
             <View style={styles.feedbackCorrectContainer}>
               <Text style={styles.feedbackCorrectEmoji}>{"\u2705"}</Text>
               <Text style={styles.feedbackCorrectText}>Correct!</Text>
+              <Button
+                mode="contained"
+                onPress={handleDismissFeedback}
+                style={[styles.gotItButton, { backgroundColor: colors.green500 }]}
+                compact
+              >
+                {currentQuestionIndex < (worksheet?.questions.length || 1) - 1
+                  ? "Next Question!"
+                  : "See My Results!"}
+              </Button>
               <Animated.View
                 style={[
                   styles.xpPopup,

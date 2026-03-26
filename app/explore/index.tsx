@@ -39,6 +39,7 @@ export default function ExploreScreen() {
   }, [pathname, selectedStudent, currentUser]);
 
   if (!selectedStudent || !currentUser) {
+    if (pathname !== '/explore') return null;
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={colors.teal400} />
@@ -161,6 +162,13 @@ export default function ExploreScreen() {
       </Text>
       <Text variant="bodySmall" style={styles.loadingSubtext}>
         Finding something new for you!
+      </Text>
+      <Text
+        variant="bodyMedium"
+        style={styles.homeLink}
+        onPress={() => { hasGenerated.current = false; router.replace('/'); }}
+      >
+        ← Back to Home
       </Text>
     </View>
   );

@@ -17,6 +17,7 @@ import { User } from 'firebase/auth';
 import { authService, UserProfile } from '../services/AuthService';
 import { studentProfileService } from '../services/StudentProfileService';
 import { StudentProfile } from '../types/adaptive-learning';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import {
   useIdTokenAuthRequest,
@@ -66,9 +67,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
   const selectedStudentIdRef = useRef<string | null>(null);
 
-  // Keep ref in sync with selected student
+  // Keep ref in sync with selected student and persist to AsyncStorage
   useEffect(() => {
     selectedStudentIdRef.current = selectedStudent?.id || null;
+    if (selectedStudent?.id) {
+      AsyncStorage.setItem('@selected_student_id', selectedStudent.id).catch(() => {});
+    }
   }, [selectedStudent]);
 
   // Google OAuth configuration
@@ -87,11 +91,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       const profiles = await studentProfileService.getUserStudents(uid);
       setStudentProfiles(profiles);
       if (profiles.length > 0) {
-        const currentId = selectedStudentIdRef.current;
+        // Try ref first, then AsyncStorage, then default to first profile
+        let currentId = selectedStudentIdRef.current;
+        if (!currentId) {
+          try {
+            currentId = await AsyncStorage.getItem('@selected_student_id');
+          } catch {}
+        }
         if (currentId) {
-          // Update the currently selected student with fresh data
           const updated = profiles.find((p) => p.id === currentId);
           if (updated) setSelectedStudent(updated);
+          else setSelectedStudent(profiles[0]);
         } else {
           setSelectedStudent(profiles[0]);
         }

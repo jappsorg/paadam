@@ -49,29 +49,23 @@ export class WorksheetService {
       role: "system",
       content: `You are an expert at generating worksheets for kids K-5. IMPORTANT: This is a text-only app with NO images, pictures, or visual aids. Never generate questions that require looking at images, counting objects in pictures, or reference any visual elements. All questions must be fully self-contained in text. For counting questions, state the number in words within the question itself (e.g., "There are 3 elephants and 2 monkeys. How many animals are there in total?" NOT "How many elephants do you see?").`,
     });
+    const subjectClause = config.subject && config.subject !== "Random"
+      ? ` about ${config.subject}`
+      : "";
     prompts.push({
       role: "user",
       content: `Generate ${config.questionsCount || 10} ${
         config.difficulty
-      } level ${config.type} questions for grade ${config.grade}`,
+      } level ${config.type} questions${subjectClause} for grade ${config.grade}. ${
+        config.subject && config.subject !== "Random"
+          ? `ALL questions MUST be about ${config.subject}. Do not generate questions about other topics.`
+          : ""
+      }`,
     });
     prompts.push({
       role: "user",
       content: this.getPromptByType(config.type),
     });
-    if (config.subject) {
-      if (config.subject === "Random") {
-        prompts.push({
-          role: "user",
-          content: "Focus on random math topics",
-        });
-      } else {
-        prompts.push({
-          role: "user",
-          content: `Focus on subject: ${config.subject}`,
-        });
-      }
-    }
 
     return prompts;
   }
@@ -130,9 +124,9 @@ export class WorksheetService {
         type: config.type,
         createdAt: new Date().toISOString(),
         config,
-        title: `${
-          config.type.charAt(0).toUpperCase() + config.type.slice(1)
-        } Worksheet - Grade ${config.grade}`,
+        title: concept
+          ? `${concept} - ${config.subject || config.type}`
+          : `${config.subject || config.type} - Grade ${config.grade}`,
         concept,
         questions,
       };
