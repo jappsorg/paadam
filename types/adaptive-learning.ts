@@ -42,6 +42,15 @@ export interface StudentProfile {
   skillsMastery: { [skillId: string]: SkillMastery };
   skillMastery?: { [skillId: string]: SkillMastery }; // legacy
   learningDisposition: LearningDisposition | null;
+
+  // Life Skills - Applied Learning
+  lifeSkillExposure?: {
+    [domain: string]: {
+      timesExposed: number;
+      lastSeenAt: Date | null;
+      engagementScore: number;
+    };
+  };
   dispositionConfidence: number; // 0-1
   learningProfile?: LearningProfile;
   preferences?: StudentPreferences;

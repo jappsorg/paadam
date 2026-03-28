@@ -36,6 +36,9 @@ const LearningPlanSchema = z.object({
   emotionalTone: z.string().describe("Emotional tone for the worksheet"),
   questionGuidance: z.array(z.string()).describe("Specific guidance for question generation"),
   themeChoicesForKid: z.array(z.string()).optional().describe("2-3 theme options for next arc, only if this is the last beat"),
+  lifeSkillDomain: z.string().optional().describe("Life skill domain being applied: money, cooking, or time"),
+  lifeSkillGuidance: z.array(z.string()).optional().describe("Specific guidance for weaving life skill context into questions"),
+  parentSummary: z.string().optional().describe("One-sentence parent-friendly summary of what the child practiced"),
 });
 
 // Zod schema for Generator output
@@ -59,6 +62,8 @@ const AdaptiveWorksheetSchema = z.object({
   }),
   arcProgressionHook: z.string().describe("Teaser for the next beat"),
   narrativeSummary: z.string().describe("One sentence summary of what happened in this beat"),
+  lifeSkillDomain: z.string().optional().describe("Life skill domain applied in this worksheet"),
+  parentSummary: z.string().optional().describe("Parent-friendly one-sentence summary of what was practiced"),
 });
 
 export type AdaptiveWorksheet = z.infer<typeof AdaptiveWorksheetSchema>;
