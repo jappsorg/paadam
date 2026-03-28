@@ -9,6 +9,7 @@ import { useAuth } from "../context/AuthContext";
 import { PlayerStats } from "../components/PlayerStats";
 import { SkillJourney } from "@/components/home/SkillJourney";
 import { ModeCard } from "@/components/home/ModeCard";
+import { SubjectExplorer } from "@/components/home/SubjectExplorer";
 import { MODE_CONFIGS, MODE_ORDER } from "@/types/modes";
 import { getSuggestion } from "@/utils/modeSuggestion";
 import MathGate from "@/components/MathGate";
@@ -167,6 +168,11 @@ export default function HomeScreen() {
           );
         })}
       </View>
+
+      {/* Subject Explorer */}
+      {selectedStudent && (
+        <SubjectExplorer grade={selectedStudent.grade} />
+      )}
 
       {/* Skill Journey */}
       {selectedStudent && (
