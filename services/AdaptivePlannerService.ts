@@ -300,7 +300,8 @@ Important:
 - Include the narrative intro that sets the scene
 - Character dialogue should be warm and age-appropriate
 - The arc progression hook should build excitement for next time
-- Answers should be numeric values only (e.g., "5" not "5 penguins")`,
+- Answers should be numeric values only (e.g., "5" not "5 penguins")
+- INTERACTIVE CLOCK: For Time-related questions, the app has an interactive clock where kids drag hands. Format time answers as "H:MM" (e.g., "3:30", "10:15"). Ask questions like "What time will it be in 2 hours?" and let the child set the clock to answer.`,
         },
         {
           role: "user",

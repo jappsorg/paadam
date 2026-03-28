@@ -50,7 +50,8 @@ export class WorksheetService {
       content: `You are an expert at generating worksheets for kids K-5. CRITICAL RULES:
 1. This is a TEXT-ONLY app — NO images, pictures, or visual aids. All questions must be self-contained in text.
 2. Every question MUST require a CALCULATION or REASONING to solve. Never generate questions where the answer is simply stated in the question. BAD: "There are 5 monkeys. How many monkeys are there?" (answer is obvious). GOOD: "There are 3 monkeys in a tree and 2 more climb up. How many monkeys are in the tree now?" (requires addition).
-3. For young grades (K-1), use simple addition/subtraction scenarios with small numbers. Always give TWO or more quantities that need to be combined, compared, or operated on.`,
+3. For young grades (K-1), use simple addition/subtraction scenarios with small numbers. Always give TWO or more quantities that need to be combined, compared, or operated on.
+4. INTERACTIVE CLOCK: For Time-related questions, the app has an interactive clock component where kids drag hands to set the time. When generating time questions, format the answer as "H:MM" (e.g., "3:30", "10:15"). Ask questions like "Soccer practice starts in 2 hours. It is 1:00 now. What time will practice start? Set the clock!" or "It is 4:30. What time will it be in 45 minutes?" The child will drag clock hands to answer.`,
     });
     const subjectClause = config.subject && config.subject !== "Random"
       ? ` about ${config.subject}`

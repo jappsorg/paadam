@@ -26,6 +26,7 @@ import { evaluateAnswer } from "../../utils/answerEvaluation";
 import { AchievementService, type AchievementDefinition } from "@/services/AchievementService";
 import { AchievementUnlockedModal } from "@/components/AchievementUnlockedModal";
 import { LoadingState, ErrorState, Confetti } from "@/components/ui";
+import { InteractiveClock } from "@/components/interactive/InteractiveClock";
 
 const CHARACTER_EMOJIS: Record<string, string> = {
   ada: "\u{1F989}",
@@ -89,6 +90,15 @@ export default function AttemptWorksheetScreen() {
   const xpSlideAnim = useRef(new Animated.Value(0)).current;
 
   const characterId = selectedStudent?.selectedCharacterId || "ada";
+
+  // Detect clock-type questions (answer is a time like "3:30" or "10:15")
+  const isClockQuestion = (question: WorksheetQuestion): boolean => {
+    const q = question.question.toLowerCase();
+    const a = question.answer || "";
+    const hasTimeKeywords = /what time|set the clock|show the time|clock show|hands.*clock|tell.*time|time.*is.*it/.test(q);
+    const answerIsTime = /^\d{1,2}:\d{2}$/.test(a.trim());
+    return hasTimeKeywords || answerIsTime;
+  };
 
   const loadWorksheet = useCallback(async () => {
     if (!userWorksheetId) {
@@ -695,14 +705,22 @@ export default function AttemptWorksheetScreen() {
               <Text variant="titleLarge" style={styles.questionText}>
                 {currentQ.question}
               </Text>
-              <TextInput
-                label="Your Answer"
-                value={currentAnswer}
-                onChangeText={handleAnswerChange}
-                mode="outlined"
-                style={styles.answerInput}
-                disabled={feedbackState !== null || isCurrentChecked}
-              />
+              {isClockQuestion(currentQ) ? (
+                <InteractiveClock
+                  value={currentAnswer || "12:00"}
+                  onChange={(time) => handleAnswerChange(time)}
+                  disabled={feedbackState !== null || isCurrentChecked}
+                />
+              ) : (
+                <TextInput
+                  label="Your Answer"
+                  value={currentAnswer}
+                  onChangeText={handleAnswerChange}
+                  mode="outlined"
+                  style={styles.answerInput}
+                  disabled={feedbackState !== null || isCurrentChecked}
+                />
+              )}
             </>
           )}
 
