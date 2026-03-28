@@ -13,6 +13,7 @@ import { ScreenContainer, LoadingState, EmptyState } from "@/components/ui";
 import { CharacterService } from "@/services/CharacterService";
 import { AchievementService } from "@/services/AchievementService";
 import { colors, spacing, radii, fontSizes, fontWeights } from "@/theme";
+import { LifeSkillBadges } from "@/components/profile/LifeSkillBadges";
 
 const CHARACTER_EMOJIS: Record<string, string> = {
   ada: "\u{1F989}",
@@ -201,6 +202,9 @@ export default function ProfileScreen() {
             })}
           </View>
         </View>
+
+        {/* Life Skills */}
+        <LifeSkillBadges exposure={(selectedStudent as any)?.lifeSkillExposure || {}} />
       </View>
     </ScreenContainer>
   );

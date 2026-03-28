@@ -497,6 +497,40 @@ export class StudentProfileService {
   }
 
   /**
+   * Update life skill exposure for a domain
+   * Called after a worksheet with life skill context is completed
+   */
+  async updateLifeSkillExposure(
+    studentId: string,
+    domain: string,
+    engagementScore: number,
+  ): Promise<void> {
+    try {
+      const profile = await this.getProfile(studentId);
+      if (!profile) return;
+
+      const exposure = (profile as any).lifeSkillExposure || {};
+      const current = exposure[domain] || { timesExposed: 0, lastSeenAt: null, engagementScore: 0 };
+
+      const updated = {
+        ...exposure,
+        [domain]: {
+          timesExposed: current.timesExposed + 1,
+          lastSeenAt: new Date(),
+          engagementScore: current.engagementScore
+            ? (current.engagementScore * 0.7 + engagementScore * 0.3)  // exponential moving average
+            : engagementScore,
+        },
+      };
+
+      await this.updateProfile(studentId, { lifeSkillExposure: updated } as any);
+      console.log(`[StudentProfile] Updated life skill exposure: ${domain} (${current.timesExposed + 1}x)`);
+    } catch (error) {
+      console.error('[StudentProfile] Failed to update life skill exposure:', error);
+    }
+  }
+
+  /**
    * Create initial skill mastery object
    */
   private createInitialSkillMastery(skillId: string): SkillMastery {
