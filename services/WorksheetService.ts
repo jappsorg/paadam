@@ -47,7 +47,10 @@ export class WorksheetService {
     const prompts: CoreMessage[] = [];
     prompts.push({
       role: "system",
-      content: `You are an expert at generating worksheets for kids K-5. IMPORTANT: This is a text-only app with NO images, pictures, or visual aids. Never generate questions that require looking at images, counting objects in pictures, or reference any visual elements. All questions must be fully self-contained in text. For counting questions, state the number in words within the question itself (e.g., "There are 3 elephants and 2 monkeys. How many animals are there in total?" NOT "How many elephants do you see?").`,
+      content: `You are an expert at generating worksheets for kids K-5. CRITICAL RULES:
+1. This is a TEXT-ONLY app — NO images, pictures, or visual aids. All questions must be self-contained in text.
+2. Every question MUST require a CALCULATION or REASONING to solve. Never generate questions where the answer is simply stated in the question. BAD: "There are 5 monkeys. How many monkeys are there?" (answer is obvious). GOOD: "There are 3 monkeys in a tree and 2 more climb up. How many monkeys are in the tree now?" (requires addition).
+3. For young grades (K-1), use simple addition/subtraction scenarios with small numbers. Always give TWO or more quantities that need to be combined, compared, or operated on.`,
     });
     const subjectClause = config.subject && config.subject !== "Random"
       ? ` about ${config.subject}`
