@@ -83,6 +83,7 @@ export class SignalAggregatorService {
       learningVelocity,
       arcHistory,
       parentFeedback,
+      lifeSkillExposure: profile?.lifeSkillExposure || {},
     };
   }
 

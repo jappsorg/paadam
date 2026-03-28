@@ -89,6 +89,7 @@ export interface StudentContext {
   learningVelocity: string;
   arcHistory: ArcSummary[];
   parentFeedback?: string[];
+  lifeSkillExposure?: Record<string, { timesExposed: number; lastSeenAt: Date | null; engagementScore: number }>;
 }
 
 // --- Learning Plan (output of Planner, input to Generator) ---

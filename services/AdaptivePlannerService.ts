@@ -11,6 +11,7 @@ import {
   PIVOT_THRESHOLDS,
 } from "@/types/adaptive-pipeline";
 import { LLM_MODELS } from "@/constants";
+import { getApplicationsForSkill, getLeastExposedDomain, LifeSkillDomain } from "@/constants/lifeSkillGraph";
 
 const openrouter = createOpenRouter({
   apiKey: process.env.EXPO_PUBLIC_OPENROUTER_API_KEY,
@@ -182,6 +183,66 @@ export class AdaptivePlannerService {
       context.parentFeedback.forEach((note) => lines.push(`  - "${note}"`));
     }
 
+    // Life skill applied learning context
+    const grade = context.grade;
+    const primarySkill = Object.entries(context.skillMastery)
+      .sort(([, a], [, b]) => (a.masteryLevel ?? 0) - (b.masteryLevel ?? 0))
+      .find(([, s]) => (s.masteryLevel ?? 0) >= 40)?.[0]; // Only apply life skills if mastery >= 40%
+
+    if (primarySkill) {
+      const applications = getApplicationsForSkill(primarySkill, grade);
+      if (applications.length > 0) {
+        const validDomains = [...new Set(applications.map(a => a.lifeSkillDomain))] as LifeSkillDomain[];
+        const lifeSkillExposure = (context as any).lifeSkillExposure || {};
+
+        // 80/20 rule: mostly use preferred themes, occasionally nudge toward unexposed
+        const shouldNudge = Math.random() < 0.2;
+        let selectedDomain: LifeSkillDomain;
+
+        if (shouldNudge) {
+          selectedDomain = getLeastExposedDomain(lifeSkillExposure, validDomains);
+        } else {
+          // Pick domain that aligns with existing theme preferences
+          selectedDomain = validDomains[0]; // Default to first valid
+          for (const domain of validDomains) {
+            // Check if any theme affinity matches this domain
+            const domainThemes: Record<string, string[]> = {
+              money: ['shopping', 'treasure', 'business', 'market'],
+              cooking: ['food', 'baking', 'kitchen', 'restaurant', 'cooking'],
+              time: ['travel', 'space', 'adventure', 'race', 'sports'],
+            };
+            const themes = domainThemes[domain] || [];
+            const hasAffinity = Object.keys(context.themeAffinities).some(t =>
+              themes.some(dt => t.toLowerCase().includes(dt))
+            );
+            if (hasAffinity) {
+              selectedDomain = domain;
+              break;
+            }
+          }
+        }
+
+        // Check staleness: if domain used 3 of last 5, force different
+        const domainExposure = lifeSkillExposure[selectedDomain];
+        if (domainExposure && domainExposure.timesExposed >= 3) {
+          const alternatives = validDomains.filter(d => d !== selectedDomain);
+          if (alternatives.length > 0) {
+            selectedDomain = getLeastExposedDomain(lifeSkillExposure, alternatives);
+          }
+        }
+
+        const selectedApps = applications.filter(a => a.lifeSkillDomain === selectedDomain);
+        const guidance = selectedApps.flatMap(a => a.promptGuidance);
+
+        lines.push(`\nApplied Learning Context:`);
+        lines.push(`Life skill domain: ${selectedDomain}`);
+        lines.push(`Weave this real-world context into the math problems naturally.`);
+        lines.push(`Guidance: ${guidance.slice(0, 3).join('; ')}`);
+        lines.push(`Generate a one-sentence parentSummary describing what the child practiced in parent-friendly language.`);
+        lines.push(`Example: "Maya practiced fractions by helping Chef Ada double a pancake recipe."`);
+      }
+    }
+
     return lines.join("\n");
   }
 
@@ -204,7 +265,11 @@ Rules:
 - Address known misconceptions
 - Use the character's personality in your plan
 - If this is the last beat, provide 2-3 theme choices for the next arc
-- Make the narrative engaging for a ${context.grade} grader`,
+- Make the narrative engaging for a ${context.grade} grader
+- If Applied Learning Context is provided, weave the life skill naturally into the narrative theme
+- Set lifeSkillDomain to the domain name if applied learning is used
+- Set lifeSkillGuidance to specific guidance for question generation
+- Generate a parentSummary: one sentence for parents describing what was practiced`,
         },
         {
           role: "user",
