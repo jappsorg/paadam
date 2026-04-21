@@ -38,3 +38,11 @@ yarn-error.*
 
 app-example
 
+# Claude Code / testing artifacts
+.claude/settings.local.json
+.playwright-mcp/
+.superpowers/
+firebase-debug.log
+
+# Test screenshots (PNGs at repo root)
+/*.png

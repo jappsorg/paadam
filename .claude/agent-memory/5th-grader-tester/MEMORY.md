@@ -1,0 +1,1 @@
+- [project_r3_test_findings.md](project_r3_test_findings.md) — R3 critical nav bug: router.replace('/') kicks users out mid-worksheet

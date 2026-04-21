@@ -1,0 +1,11 @@
+- [user_role.md](user_role.md) - User building kids learning app, prefers experience-first dev
+- [feedback_autopilot.md](feedback_autopilot.md) - User wants autonomous work, notify only when ready for review
+- [project_parent_kid_mode.md](project_parent_kid_mode.md) - Parent/kid mode switch design: Option C chosen, math-gate vs password discussion in progress
+- [project_add_child_flow.md](project_add_child_flow.md) - Add Child from parent dashboard uses dedicated parent-facing form, not kid onboarding
+- [project_character_interstitial.md](project_character_interstitial.md) - Blocking character selection for parent-added children (selectedCharacterId: null), spec complete
+- [project_codebase_gaps_2026_03.md](project_codebase_gaps_2026_03.md) - Critical codebase gaps: no per-question feedback, achievements unwired, XP leveling bug, bond never updated
+- [project_learning_modes_redesign.md](project_learning_modes_redesign.md) - Practice/Explore/Challenge redesign: all 10 design decisions finalized (naming, tabs, unlock, flows, visual, age bands)
+- [project_user_test_round1.md](project_user_test_round1.md) - User testing round 1 (2026-03-26): overlay bug critical, learner switching broken, target 7.0+ avg next round
+- [project_applied_learning_strategy.md](project_applied_learning_strategy.md) - Applied Learning: launch 3 domains (money, cooking, time), mode-dependent density, enrich existing pipeline
+- [project_voice_strategy.md](project_voice_strategy.md) - Voice strategy: phased TTS/STT plan, expo-speech MVP, age-adaptive pacing, character voices, COPPA-safe approach
+- [project_kindergarten_accessibility.md](project_kindergarten_accessibility.md) - K accessibility: visual questions, auto-TTS, number pad, grade-aware UI, 3-phase plan

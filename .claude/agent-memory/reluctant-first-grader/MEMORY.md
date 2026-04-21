@@ -1,0 +1,1 @@
+- [project_paadam_ux_findings.md](project_paadam_ux_findings.md) - Jordan's UX test findings: what engages vs loses a reluctant 6-year-old in the Paadam app

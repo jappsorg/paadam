@@ -1,0 +1,21 @@
+{
+  "effortLevel": "high",
+  "permissions": {
+    "allow": ["Bash(*)", "Edit", "Write", "Read", "Glob", "Grep"],
+    "deny": ["Read(.env*)", "Bash(rm -rf *)", "Bash(sudo *)"]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "prettier --write \"$CLAUDE_FILE_PATHS\""
+          }
+        ]
+      }
+    ]
+  },
+  "defaultMode": "bypassPermissions"
+}
