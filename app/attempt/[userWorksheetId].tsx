@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { StyleSheet, Alert, ScrollView, View, Animated } from "react-native";
+import { StyleSheet, Alert, ScrollView, View, Animated, TouchableOpacity } from "react-native";
 import {
   Button,
   Text,
@@ -7,6 +7,7 @@ import {
   TextInput,
   ProgressBar,
 } from "react-native-paper";
+import { SpeechService } from "../../services/SpeechService";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, usePathname } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
@@ -90,6 +91,78 @@ export default function AttemptWorksheetScreen() {
   const xpSlideAnim = useRef(new Animated.Value(0)).current;
 
   const characterId = selectedStudent?.selectedCharacterId || "ada";
+  const autoRead = SpeechService.shouldAutoRead(selectedStudent?.grade);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Speak question immediately (for manual speaker button tap)
+  const speakQuestion = useCallback(
+    (text: string) => {
+      if (!text) return;
+      SpeechService.speak(text, {
+        characterId,
+        onDone: () => setIsSpeaking(false),
+      });
+      setIsSpeaking(true);
+    },
+    [characterId]
+  );
+
+  // Enqueue question read — waits for companion speech to finish first
+  const enqueueQuestion = useCallback(
+    (text: string) => {
+      if (!text) return;
+      SpeechService.enqueue(text, {
+        characterId,
+        onDone: () => setIsSpeaking(false),
+      });
+      setIsSpeaking(true);
+    },
+    [characterId]
+  );
+
+  // Enqueue feedback — plays after any current speech finishes
+  const enqueueFeedback = useCallback(
+    (text: string) => {
+      if (!text) return;
+      SpeechService.enqueue(text, { characterId });
+    },
+    [characterId]
+  );
+
+  // Stop speech on unmount or when leaving the screen
+  useEffect(() => {
+    return () => {
+      SpeechService.stop();
+    };
+  }, []);
+
+  // Auto-read when question changes (K-1 only) — enqueued so companion finishes first
+  useEffect(() => {
+    if (autoRead && worksheet && !showResults && !isLoading) {
+      const q = worksheet.questions[currentQuestionIndex];
+      if (q) {
+        // Small delay so the UI renders, then enqueue (waits for companion speech)
+        const timer = setTimeout(() => enqueueQuestion(q.question), 300);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [currentQuestionIndex, autoRead, worksheet, showResults, isLoading, enqueueQuestion]);
+
+  // Read results aloud for K-1 when the results screen appears
+  useEffect(() => {
+    if (autoRead && showResults && worksheet) {
+      const correctCount = processedAnswers.filter((a) => a.isCorrect).length;
+      const total = worksheet.questions.length;
+      const scoreLabel =
+        finalScore >= 90 ? "Amazing!" : finalScore >= 70 ? "Great job!" : finalScore >= 50 ? "Good effort!" : "Keep practicing!";
+      const resultsText = `${scoreLabel} You got ${correctCount} out of ${total} right!`;
+      // Enqueue so companion celebrating message plays first
+      const timer = setTimeout(() => {
+        SpeechService.enqueue(resultsText, { characterId });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [showResults, autoRead, worksheet, finalScore, processedAnswers, characterId]);
 
   // Detect clock-type questions (answer is a time like "3:30" or "10:15")
   const isClockQuestion = (question: WorksheetQuestion): boolean => {
@@ -268,12 +341,22 @@ export default function AttemptWorksheetScreen() {
       setRunningXP((prev) => prev + 10);
       animateXPPopup();
 
+      // Read "Correct!" aloud for young students (enqueued after companion)
+      if (autoRead) enqueueFeedback("Correct! Great job!");
+
       // Let kids press "Next" themselves — no auto-advance
     } else {
       setFeedbackState("incorrect");
       setFeedbackCorrectAnswer(currentQ.answer || "");
       setFeedbackExplanation(currentQ.explanation || "");
       setCompanionMood("incorrect");
+
+      // Read feedback + explanation aloud for young students (enqueued after companion)
+      if (autoRead) {
+        const answer = currentQ.answer ? `The answer is ${currentQ.answer}.` : "";
+        const hint = currentQ.explanation || "";
+        enqueueFeedback(`Not quite! ${answer} ${hint}`);
+      }
     }
   };
 
@@ -536,6 +619,7 @@ export default function AttemptWorksheetScreen() {
             characterId={characterId}
             mood={finalScore >= 70 ? "celebrating" : "encouraging"}
             studentName={selectedStudent?.name}
+            studentGrade={selectedStudent?.grade}
           />
 
           {/* Score summary */}
@@ -674,6 +758,7 @@ export default function AttemptWorksheetScreen() {
           characterId={characterId}
           mood={companionMood}
           studentName={selectedStudent?.name}
+          studentGrade={selectedStudent?.grade}
         />
 
         {/* Running XP indicator */}
@@ -702,9 +787,26 @@ export default function AttemptWorksheetScreen() {
           </View>
           {currentQ && (
             <>
-              <Text variant="titleLarge" style={styles.questionText}>
-                {currentQ.question}
-              </Text>
+              <View style={styles.questionRow}>
+                <Text variant="titleLarge" style={[styles.questionText, { flex: 1 }]}>
+                  {currentQ.question}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (isSpeaking) {
+                      SpeechService.stop();
+                      setIsSpeaking(false);
+                    } else {
+                      speakQuestion(currentQ.question);
+                    }
+                  }}
+                  style={styles.speakerButton}
+                  accessibilityLabel="Read question aloud"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.speakerIcon}>{isSpeaking ? "\uD83D\uDD0A" : "\uD83D\uDD08"}</Text>
+                </TouchableOpacity>
+              </View>
               {isClockQuestion(currentQ) ? (
                 <InteractiveClock
                   value={currentAnswer || "12:00"}
@@ -940,10 +1042,24 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     overflow: "hidden",
   },
-  questionText: {
+  questionRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginTop: spacing.lg,
     marginBottom: spacing.xl,
+    gap: spacing.sm,
+  },
+  questionText: {
     lineHeight: 30,
+  },
+  speakerButton: {
+    padding: spacing.sm,
+    borderRadius: radii.full,
+    backgroundColor: colors.avatarBackground,
+    marginTop: spacing.xxs,
+  },
+  speakerIcon: {
+    fontSize: fontSizes.xl,
   },
   answerInput: {
     marginTop: spacing.md,

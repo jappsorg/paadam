@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Animated } from "react-native";
 import { Text, Surface } from "react-native-paper";
 import { CharacterService } from "../services/CharacterService";
+import { SpeechService } from "../services/SpeechService";
 import { colors, spacing, radii, sizes, fontSizes, fontWeights } from "@/theme";
+import type { Grade } from "@/types/adaptive-learning";
 
 export type CompanionMood =
   | "idle"
@@ -16,6 +18,7 @@ interface CharacterCompanionProps {
   characterId: string | null;
   mood: CompanionMood;
   studentName?: string;
+  studentGrade?: Grade | null;
 }
 
 const CHARACTER_EMOJIS: Record<string, string> = {
@@ -137,6 +140,7 @@ export function CharacterCompanion({
   characterId,
   mood,
   studentName,
+  studentGrade,
 }: CharacterCompanionProps) {
   const [message, setMessage] = useState("");
   const [bounceAnim] = useState(new Animated.Value(1));
@@ -146,7 +150,13 @@ export function CharacterCompanion({
   const character = CharacterService.getCharacterById(charId);
 
   useEffect(() => {
-    setMessage(getRandomMessage(charId, mood));
+    const newMessage = getRandomMessage(charId, mood);
+    setMessage(newMessage);
+
+    // Speak companion message aloud for K-1 students (enqueued so it sequences)
+    if (SpeechService.shouldAutoRead(studentGrade) && mood !== "idle") {
+      SpeechService.enqueue(newMessage, { characterId: charId });
+    }
 
     // Bounce animation on mood change
     Animated.sequence([
